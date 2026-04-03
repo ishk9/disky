@@ -10,10 +10,15 @@ import { Colors } from '../renderers/Colors';
 interface ListCommandOptions {
   /** When false, show all large directories (--all mode). */
   artifactOnly: boolean;
+  /**
+   * Optional minimum size in bytes. Only entries at or above this threshold
+   * are shown. Parses strings like "500MB", "1.5GB", "100KB".
+   */
+  minBytes?: number;
 }
 
 /**
- * Handles `disky` and `disky --all`.
+ * Handles `disky scan`, `disky scan --all`, and `disky scan --min <size>`.
  */
 export class ListCommand implements ICommand {
   private readonly scanner: IScanner;
@@ -32,12 +37,21 @@ export class ListCommand implements ICommand {
   }
 
   async execute(): Promise<void> {
-    const entries = await this.scanner.scan(this.options.artifactOnly);
+    let entries = await this.scanner.scan(this.options.artifactOnly);
+
+    if (this.options.minBytes !== undefined && this.options.minBytes > 0) {
+      entries = entries.filter((e) => e.sizeBytes >= this.options.minBytes!);
+    }
 
     this.cache.save(entries);
 
     console.log('\n' + this.headerRenderer.render());
     console.log('');
+
+    if (this.options.minBytes) {
+      console.log(`  ${Colors.dim(`Showing entries ≥ ${formatBytes(this.options.minBytes)}`)}`);
+      console.log('');
+    }
 
     if (entries.length === 0) {
       console.log(`  ${Colors.dim('No disk hogs found.')}`);
@@ -51,10 +65,8 @@ export class ListCommand implements ICommand {
   }
 
   private buildFooter(entries: DiskEntry[]): string {
-    const totalBytes = entries.reduce((sum: number, e) => sum + e.sizeBytes, 0);
-    const totalHuman = formatBytes(totalBytes);
-
-    const parts: string[] = [`${totalHuman} recoverable`, 'Run disky <id> for details'];
+    const totalBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
+    const parts: string[] = [`${formatBytes(totalBytes)} recoverable`, 'Run disky <id> for details'];
 
     if (this.options.artifactOnly) {
       parts.push('disky clean to free space');
@@ -62,4 +74,27 @@ export class ListCommand implements ICommand {
 
     return '  ' + Colors.dim(parts.join('  ·  '));
   }
+}
+
+/**
+ * Parses a human-readable size string into bytes.
+ * Accepts: "500MB", "1.5GB", "100KB", "2048" (raw bytes).
+ * Returns NaN if the string is not parseable.
+ */
+export function parseMinSize(input: string): number {
+  const match = input.trim().match(/^([\d.]+)\s*(B|KB|MB|GB|TB)?$/i);
+  if (!match) return NaN;
+
+  const value = parseFloat(match[1] ?? '0');
+  const unit = (match[2] ?? 'B').toUpperCase();
+
+  const multipliers: Record<string, number> = {
+    B:  1,
+    KB: 1024,
+    MB: 1024 ** 2,
+    GB: 1024 ** 3,
+    TB: 1024 ** 4,
+  };
+
+  return Math.round(value * (multipliers[unit] ?? 1));
 }
