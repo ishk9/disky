@@ -1,6 +1,6 @@
 {
   "name": "@ishk9/disky",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "CLI that surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup",
   "main": "dist/index.js",
   "bin": {
