@@ -1,0 +1,1 @@
+{"version":3,"file":"BuildDetector.d.ts","sourceRoot":"","sources":["../../../src/strategies/artifact/BuildDetector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,iBAAiB,EAAE,MAAM,oCAAoC,CAAC;AACvE,OAAO,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAE/C,qBAAa,aAAc,YAAW,iBAAiB;IACrD,QAAQ,CAAC,YAAY,mBAAmB;IAExC,SAAS,CAAC,OAAO,EAAE,MAAM,GAAG,OAAO;IAInC,MAAM,IAAI,gBAAgB;CAG3B"}

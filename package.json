@@ -1,0 +1,40 @@
+{
+  "name": "@ishk9/disky",
+  "version": "1.0.0",
+  "description": "CLI that surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup",
+  "main": "dist/index.js",
+  "bin": {
+    "disky": "./dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "ts-node src/index.ts",
+    "start": "node dist/index.js",
+    "lint": "tsc --noEmit",
+    "prepublishOnly": "npm run lint && npm run build"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "disk",
+    "cleanup",
+    "cli",
+    "dev-tools",
+    "node_modules",
+    "cache"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "commander": "^12.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.5"
+  }
+}

@@ -1,0 +1,1 @@
+{"version":3,"file":"NuxtDetector.d.ts","sourceRoot":"","sources":["../../../src/strategies/artifact/NuxtDetector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,iBAAiB,EAAE,MAAM,oCAAoC,CAAC;AACvE,OAAO,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAE/C,qBAAa,YAAa,YAAW,iBAAiB;IACpD,QAAQ,CAAC,YAAY,kBAAkB;IAEvC,SAAS,CAAC,OAAO,EAAE,MAAM,GAAG,OAAO;IAInC,MAAM,IAAI,gBAAgB;CAG3B"}

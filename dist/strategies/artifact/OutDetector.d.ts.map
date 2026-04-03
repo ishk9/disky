@@ -1,0 +1,1 @@
+{"version":3,"file":"OutDetector.d.ts","sourceRoot":"","sources":["../../../src/strategies/artifact/OutDetector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,iBAAiB,EAAE,MAAM,oCAAoC,CAAC;AACvE,OAAO,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAE/C,qBAAa,WAAY,YAAW,iBAAiB;IACnD,QAAQ,CAAC,YAAY,iBAAiB;IAEtC,SAAS,CAAC,OAAO,EAAE,MAAM,GAAG,OAAO;IAInC,MAAM,IAAI,gBAAgB;CAG3B"}

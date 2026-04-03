@@ -1,0 +1,1 @@
+{"version":3,"file":"HeaderRenderer.d.ts","sourceRoot":"","sources":["../../src/renderers/HeaderRenderer.ts"],"names":[],"mappings":"AAEA,UAAU,aAAa;IACrB,SAAS,CAAC,EAAE,OAAO,CAAC;CACrB;AAED;;GAEG;AACH,qBAAa,cAAc;IACzB,OAAO,CAAC,QAAQ,CAAC,SAAS,CAAM;IAEhC,MAAM,CAAC,OAAO,GAAE,aAAkB,GAAG,MAAM;CAuB5C"}

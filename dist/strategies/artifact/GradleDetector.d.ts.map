@@ -1,0 +1,1 @@
+{"version":3,"file":"GradleDetector.d.ts","sourceRoot":"","sources":["../../../src/strategies/artifact/GradleDetector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,iBAAiB,EAAE,MAAM,oCAAoC,CAAC;AACvE,OAAO,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAI/C,qBAAa,cAAe,YAAW,iBAAiB;IACtD,QAAQ,CAAC,YAAY,oBAAoB;IAEzC,SAAS,CAAC,OAAO,EAAE,MAAM,EAAE,QAAQ,EAAE,MAAM,GAAG,OAAO;IAMrD,MAAM,IAAI,gBAAgB;CAG3B"}

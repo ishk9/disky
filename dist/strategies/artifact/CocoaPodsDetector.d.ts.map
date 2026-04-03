@@ -1,0 +1,1 @@
+{"version":3,"file":"CocoaPodsDetector.d.ts","sourceRoot":"","sources":["../../../src/strategies/artifact/CocoaPodsDetector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,iBAAiB,EAAE,MAAM,oCAAoC,CAAC;AACvE,OAAO,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAE/C,qBAAa,iBAAkB,YAAW,iBAAiB;IACzD,QAAQ,CAAC,YAAY,uBAAuB;IAE5C,SAAS,CAAC,OAAO,EAAE,MAAM,GAAG,OAAO;IAInC,MAAM,IAAI,gBAAgB;CAG3B"}

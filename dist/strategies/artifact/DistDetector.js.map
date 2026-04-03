@@ -1,0 +1,1 @@
+{"version":3,"file":"DistDetector.js","sourceRoot":"","sources":["../../../src/strategies/artifact/DistDetector.ts"],"names":[],"mappings":";;;AAGA,MAAa,YAAY;IAAzB;QACW,iBAAY,GAAG,cAAc,CAAC;IASzC,CAAC;IAPC,SAAS,CAAC,OAAe;QACvB,OAAO,OAAO,KAAK,MAAM,CAAC;IAC5B,CAAC;IAED,MAAM;QACJ,OAAO,EAAE,KAAK,EAAE,MAAM,EAAE,KAAK,EAAE,QAAQ,EAAE,WAAW,EAAE,IAAI,EAAE,CAAC;IAC/D,CAAC;CACF;AAVD,oCAUC"}
