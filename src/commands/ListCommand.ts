@@ -86,7 +86,8 @@ export function parseMinSize(input: string): number {
   if (!match) return NaN;
 
   const value = parseFloat(match[1] ?? '0');
-  const unit = (match[2] ?? 'B').toUpperCase();
+  // Default to MB when no unit given — bare numbers like "500" mean 500 MB
+  const unit = (match[2] ?? 'MB').toUpperCase();
 
   const multipliers: Record<string, number> = {
     B:  1,

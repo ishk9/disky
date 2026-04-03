@@ -5,7 +5,7 @@ import { HeaderRenderer } from '../renderers/HeaderRenderer';
 const COMMANDS = [
   { cmd: 'disky scan',            desc: 'Scan for disk hogs (node_modules, .next, dist, caches…)' },
   { cmd: 'disky scan --all',      desc: 'Scan all large directories, no type filter' },
-  { cmd: 'disky scan --min <sz>', desc: 'Only show entries above a size threshold (e.g. --min 500MB)' },
+  { cmd: 'disky scan --min <sz>', desc: 'Only show entries above a size threshold (e.g. --min 500, --min 1GB)' },
   { cmd: 'disky <id>',            desc: 'Detailed breakdown for a specific entry' },
   { cmd: 'disky <path>',          desc: 'Detailed breakdown for a directory path' },
   { cmd: 'disky clean',           desc: 'Interactively remove all detected hogs' },

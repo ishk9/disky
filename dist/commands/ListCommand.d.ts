@@ -3,9 +3,14 @@ import { IScanner } from '../interfaces/IScanner';
 interface ListCommandOptions {
     /** When false, show all large directories (--all mode). */
     artifactOnly: boolean;
+    /**
+     * Optional minimum size in bytes. Only entries at or above this threshold
+     * are shown. Parses strings like "500MB", "1.5GB", "100KB".
+     */
+    minBytes?: number;
 }
 /**
- * Handles `disky` and `disky --all`.
+ * Handles `disky scan`, `disky scan --all`, and `disky scan --min <size>`.
  */
 export declare class ListCommand implements ICommand {
     private readonly options;
@@ -17,5 +22,11 @@ export declare class ListCommand implements ICommand {
     execute(): Promise<void>;
     private buildFooter;
 }
+/**
+ * Parses a human-readable size string into bytes.
+ * Accepts: "500MB", "1.5GB", "100KB", "2048" (raw bytes).
+ * Returns NaN if the string is not parseable.
+ */
+export declare function parseMinSize(input: string): number;
 export {};
 //# sourceMappingURL=ListCommand.d.ts.map
