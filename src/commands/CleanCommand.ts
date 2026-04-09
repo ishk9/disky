@@ -1,6 +1,6 @@
 import * as readline from 'readline';
 import * as path from 'path';
-import { execSync } from 'child_process';
+import { execSync, execFileSync } from 'child_process';
 import { ICommand } from '../interfaces/ICommand';
 import { IScanner } from '../interfaces/IScanner';
 import { DiskScanner, formatBytes } from '../core/DiskScanner';
@@ -195,7 +195,7 @@ export class CleanCommand implements ICommand {
       if (entry.isDockerEntry) {
         execSync('docker system prune -f 2>/dev/null', { stdio: 'pipe' });
       } else {
-        execSync(`rm -rf "${entry.absolutePath}"`, { stdio: 'pipe' });
+        execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
       }
 
       return {

@@ -1,4 +1,4 @@
-import { execSync, spawnSync } from 'child_process';
+import { execSync, execFileSync, spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
@@ -211,7 +211,7 @@ export class DiskScanner implements IScanner {
   /** Returns size of a directory in bytes using `du -sk`. */
   private getDirSizeBytes(dirPath: string): number {
     try {
-      const raw = execSync(`du -sk "${dirPath}" 2>/dev/null`, {
+      const raw = execFileSync('du', ['-sk', dirPath], {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
@@ -238,14 +238,17 @@ export class DiskScanner implements IScanner {
    */
   private getTopOffenders(dirPath: string): TopOffender[] {
     try {
-      const raw = execSync(`du -sk "${dirPath}"/* 2>/dev/null | sort -rn | head -${TOP_OFFENDERS_LIMIT + 1}`, {
+      const children = fs.readdirSync(dirPath).map((name) => path.join(dirPath, name));
+      if (children.length === 0) return [];
+
+      const raw = execFileSync('du', ['-sk', ...children], {
         encoding: 'utf8',
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
       const offenders: TopOffender[] = [];
 
-      for (const line of raw.split('\n').slice(0, TOP_OFFENDERS_LIMIT)) {
+      for (const line of raw.split('\n')) {
         const trimmed = line.trim();
         if (!trimmed) continue;
         const tab = trimmed.indexOf('\t');
@@ -262,7 +265,8 @@ export class DiskScanner implements IScanner {
         });
       }
 
-      return offenders;
+      offenders.sort((a, b) => b.sizeBytes - a.sizeBytes);
+      return offenders.slice(0, TOP_OFFENDERS_LIMIT);
     } catch {
       return [];
     }

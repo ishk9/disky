@@ -13,13 +13,14 @@ import { DetailCommand } from './commands/DetailCommand';
 import { CleanCommand } from './commands/CleanCommand';
 import { WatchCommand } from './commands/WatchCommand';
 import { Colors } from './renderers/Colors';
+import pkg from '../package.json';
 
 const program = new Command();
 
 program
   .name('disky')
   .description('Surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup')
-  .version('1.0.0');
+  .version(pkg.version);
 
 // ─── disky (welcome splash, no scan) ──────────────────────────────────────
 program
@@ -41,7 +42,8 @@ program
   .option('--min <size>', 'Only show entries at or above this size (e.g. 500MB, 1GB, 100KB)')
   .option('--sort <mode>', 'Sort results: size (default), age, or type')
   .option('--json', 'Output results as JSON (pipe-friendly, no colors)')
-  .action((opts: { all?: boolean; min?: string; sort?: string; json?: boolean }) => {
+  .option('--top <n>', 'Limit output to the top N entries', parseInt)
+  .action((opts: { all?: boolean; min?: string; sort?: string; json?: boolean; top?: number }) => {
     const minBytes = opts.min ? parseMinSize(opts.min) : undefined;
 
     if (opts.min && (isNaN(minBytes!) || minBytes! <= 0)) {
@@ -56,7 +58,7 @@ program
     }
 
     const sortMode = (opts.sort as 'size' | 'age' | 'type') ?? 'size';
-    new ListCommand({ artifactOnly: !opts.all, minBytes, sortMode, json: opts.json }).execute().catch(handleError);
+    new ListCommand({ artifactOnly: !opts.all, minBytes, sortMode, json: opts.json, top: opts.top }).execute().catch(handleError);
   });
 
 // ─── disky watch ──────────────────────────────────────────────────────────
