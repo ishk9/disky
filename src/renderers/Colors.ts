@@ -24,6 +24,7 @@ export const Colors = {
   // Status / feedback
   success: chalk.green.bold,
   error:   chalk.red.bold,
+  warn:    chalk.yellow.dim,
   prompt:  chalk.yellow,
 
   // Detail view

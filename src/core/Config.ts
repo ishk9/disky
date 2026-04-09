@@ -1,6 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { Colors } from '../renderers/Colors';
 
 interface DiskyConfig {
   exclude: string[];
@@ -31,7 +32,8 @@ export class Config {
         return { exclude: parsed.exclude.filter((p: unknown) => typeof p === 'string') };
       }
       return { exclude: [] };
-    } catch {
+    } catch (err) {
+      console.error(`  ${Colors.warn('Warning:')} Failed to parse config at ${Config.CONFIG_FILE}: ${err instanceof Error ? err.message : err}`);
       return { exclude: [] };
     }
   }

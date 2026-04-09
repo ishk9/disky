@@ -18,6 +18,9 @@ Thumbs.db
 *.swp
 *.swo
 
+# Tests
+tests/
+
 # Debug
 *.log
 npm-debug.log*

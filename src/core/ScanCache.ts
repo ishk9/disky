@@ -2,6 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import { CachedEntry, DiskEntry } from '../types';
+import { Colors } from '../renderers/Colors';
 
 /**
  * Persists the last scan result to ~/.disky/last-scan.json so that
@@ -25,8 +26,8 @@ export class ScanCache {
       }));
 
       fs.writeFileSync(ScanCache.CACHE_FILE, JSON.stringify(cached, null, 2), 'utf8');
-    } catch {
-      // cache writes are best-effort; never crash the main flow
+    } catch (err) {
+      console.error(`  ${Colors.warn('Warning:')} Could not write scan cache: ${err instanceof Error ? err.message : err}`);
     }
   }
 
@@ -35,7 +36,8 @@ export class ScanCache {
       if (!fs.existsSync(ScanCache.CACHE_FILE)) return [];
       const raw = fs.readFileSync(ScanCache.CACHE_FILE, 'utf8');
       return JSON.parse(raw) as CachedEntry[];
-    } catch {
+    } catch (err) {
+      console.error(`  ${Colors.warn('Warning:')} Could not read scan cache: ${err instanceof Error ? err.message : err}`);
       return [];
     }
   }

@@ -1,11 +1,10 @@
-import * as readline from 'readline';
-import * as path from 'path';
 import { execSync, execFileSync } from 'child_process';
 import { ICommand } from '../interfaces/ICommand';
 import { IScanner } from '../interfaces/IScanner';
 import { DiskScanner, formatBytes } from '../core/DiskScanner';
 import { ScanCache } from '../core/ScanCache';
 import { Config } from '../core/Config';
+import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver';
 import { TableRenderer } from '../renderers/TableRenderer';
 import { CleanRenderer, RemovalResult } from '../renderers/CleanRenderer';
 import { Colors } from '../renderers/Colors';
@@ -54,7 +53,7 @@ export class CleanCommand implements ICommand {
   // ─── Specific entry removal ───────────────────────────────────────────────
 
   private async removeSpecific(): Promise<void> {
-    const entry = await this.resolveEntry();
+    const entry = await resolveEntry(this.options, this.scanner, this.cache);
 
     if (!entry) {
       const target = this.options.id !== undefined
@@ -69,8 +68,8 @@ export class CleanCommand implements ICommand {
 
     const label = entry.artifactType.label;
     const loc   = entry.project ?? entry.displayPath;
-    const exclusions = this.getEffectiveExclusions();
-    const excluded = this.isExcluded(entry, exclusions);
+    const exclusions = getEffectiveExclusions(this.config, this.options.excludePaths);
+    const excluded = isExcluded(entry, exclusions);
 
     if (this.options.dryRun) {
       if (excluded) {
@@ -87,7 +86,7 @@ export class CleanCommand implements ICommand {
       promptText = `${loc} is in your exclusion list. Remove anyway? [y/N]`;
     }
 
-    const confirmed = await this.prompt(`  ${Colors.prompt(promptText)} `);
+    const confirmed = await promptConfirm(`  ${Colors.prompt(promptText)} `);
 
     if (!confirmed) {
       console.log(`\n  ${Colors.dim('Aborted.')}\n`);
@@ -109,9 +108,9 @@ export class CleanCommand implements ICommand {
     let safeEntries = entries.filter((e) => e.artifactType.safeToClean);
 
     // Apply exclusions
-    const exclusions = this.getEffectiveExclusions();
-    const excludedCount = safeEntries.filter((e) => this.isExcluded(e, exclusions)).length;
-    safeEntries = safeEntries.filter((e) => !this.isExcluded(e, exclusions));
+    const exclusions = getEffectiveExclusions(this.config, this.options.excludePaths);
+    const excludedCount = safeEntries.filter((e) => isExcluded(e, exclusions)).length;
+    safeEntries = safeEntries.filter((e) => !isExcluded(e, exclusions));
 
     process.stdout.write(this.cleanRenderer.render(safeEntries));
 
@@ -128,7 +127,7 @@ export class CleanCommand implements ICommand {
       return;
     }
 
-    const confirmed = await this.prompt(`  ${Colors.prompt('Remove all? [y/N]')} `);
+    const confirmed = await promptConfirm(`  ${Colors.prompt('Remove all? [y/N]')} `);
 
     if (!confirmed) {
       console.log(`\n  ${Colors.dim('Aborted.')}\n`);
@@ -149,42 +148,6 @@ export class CleanCommand implements ICommand {
   }
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
-
-  private async resolveEntry(): Promise<DiskEntry | null> {
-    // Try cache first
-    if (this.options.id !== undefined) {
-      const cached = this.cache.findById(this.options.id);
-      if (cached) {
-        const entries = await this.scanner.scan(true);
-        this.cache.save(entries);
-        return entries.find((e) => e.absolutePath === cached.absolutePath) ?? null;
-      }
-    }
-
-    if (this.options.targetPath) {
-      const absPath = this.expandPath(this.options.targetPath);
-      const cached = this.cache.findByPath(absPath);
-      if (cached) {
-        const entries = await this.scanner.scan(true);
-        this.cache.save(entries);
-        return entries.find((e) => e.absolutePath === absPath) ?? null;
-      }
-    }
-
-    // Live scan fallback
-    const entries = await this.scanner.scan(true);
-    this.cache.save(entries);
-
-    if (this.options.id !== undefined) {
-      return entries.find((e) => e.id === this.options.id) ?? null;
-    }
-    if (this.options.targetPath) {
-      const absPath = this.expandPath(this.options.targetPath);
-      return entries.find((e) => e.absolutePath === absPath) ?? null;
-    }
-
-    return null;
-  }
 
   /**
    * Removes an entry from disk (or prunes Docker resources) and returns the result.
@@ -209,36 +172,4 @@ export class CleanCommand implements ICommand {
     }
   }
 
-  private getEffectiveExclusions(): string[] {
-    const configExclusions = this.config.getExclusions();
-    const cliExclusions = (this.options.excludePaths ?? []).map((p) => this.expandPath(p));
-    return [...new Set([...configExclusions, ...cliExclusions])];
-  }
-
-  private isExcluded(entry: DiskEntry, exclusions: string[]): boolean {
-    if (entry.isDockerEntry) return false;
-    return exclusions.some((ex) =>
-      entry.absolutePath === ex || entry.absolutePath.startsWith(ex + path.sep),
-    );
-  }
-
-  private expandPath(p: string): string {
-    if (p.startsWith('~/')) {
-      return path.join(process.env.HOME ?? '', p.slice(2));
-    }
-    return path.resolve(p);
-  }
-
-  private prompt(question: string): Promise<boolean> {
-    return new Promise((resolve) => {
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-      });
-      rl.question(question, (answer) => {
-        rl.close();
-        resolve(answer.trim().toLowerCase() === 'y');
-      });
-    });
-  }
 }
