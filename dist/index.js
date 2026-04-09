@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+// Gracefully handle broken pipes (e.g. `disky scan --json | head -20`)
+process.stdout.on('error', (err) => {
+    if (err.code === 'EPIPE')
+        process.exit(0);
+    throw err;
+});
 const commander_1 = require("commander");
 const WelcomeCommand_1 = require("./commands/WelcomeCommand");
 const ListCommand_1 = require("./commands/ListCommand");

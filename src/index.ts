@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+// Gracefully handle broken pipes (e.g. `disky scan --json | head -20`)
+process.stdout.on('error', (err) => {
+  if (err.code === 'EPIPE') process.exit(0);
+  throw err;
+});
+
 import { Command } from 'commander';
 import { WelcomeCommand } from './commands/WelcomeCommand';
 import { ListCommand, parseMinSize } from './commands/ListCommand';
