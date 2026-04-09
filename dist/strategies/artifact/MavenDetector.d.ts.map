@@ -1,1 +1,0 @@
-{"version":3,"file":"MavenDetector.d.ts","sourceRoot":"","sources":["../../../src/strategies/artifact/MavenDetector.ts"],"names":[],"mappings":"AAAA,OAAO,EAAE,iBAAiB,EAAE,MAAM,oCAAoC,CAAC;AACvE,OAAO,EAAE,gBAAgB,EAAE,MAAM,aAAa,CAAC;AAI/C,qBAAa,aAAc,YAAW,iBAAiB;IACrD,QAAQ,CAAC,YAAY,mBAAmB;IAExC,SAAS,CAAC,OAAO,EAAE,MAAM,EAAE,QAAQ,EAAE,MAAM,GAAG,OAAO;IAMrD,MAAM,IAAI,gBAAgB;CAG3B"}
