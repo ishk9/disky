@@ -1,4 +1,4 @@
-import { DiskEntry } from '../types';
+import { DiskEntry, AGE_WARN_MS, AGE_STALE_MS } from '../types';
 import { Colors } from './Colors';
 import { IRenderer } from '../interfaces/IRenderer';
 
@@ -30,14 +30,31 @@ export class DetailRenderer implements IRenderer<DiskEntry> {
   private renderFields(entry: DiskEntry): string[] {
     const label = (s: string) => Colors.sectionLabel(s.padEnd(14));
 
-    return [
+    const ageDisplay = this.renderAgeField(entry);
+
+    const lines = [
       `  ${label('ID')}${Colors.id(String(entry.id))}`,
       `  ${label('Type')}${Colors.artifact(entry.artifactType.color)(entry.artifactType.label)}`,
       `  ${label('Size')}${Colors.size(entry.sizeHuman)}`,
       `  ${label('Path')}${Colors.path(entry.displayPath)}`,
       `  ${label('Project')}${entry.project ? Colors.project(entry.project) : Colors.dim('–')}`,
-      `  ${label('Last Modified')}${entry.ageMs > 0 ? Colors.age(entry.ageHuman) : Colors.dim('–')}`,
+      `  ${label('Last Modified')}${ageDisplay}`,
     ];
+
+    if (entry.ageMs >= AGE_STALE_MS) {
+      lines.push(`  ${Colors.ageStale('⚠  Not touched in over 90 days — safe to remove')}`);
+    } else if (entry.ageMs >= AGE_WARN_MS) {
+      lines.push(`  ${Colors.ageWarn('·  Unused for over 30 days')}`);
+    }
+
+    return lines;
+  }
+
+  private renderAgeField(entry: DiskEntry): string {
+    if (entry.ageMs <= 0)              return Colors.dim('–');
+    if (entry.ageMs >= AGE_STALE_MS)   return Colors.ageStale(entry.ageHuman + ' ⚠');
+    if (entry.ageMs >= AGE_WARN_MS)    return Colors.ageWarn(entry.ageHuman);
+    return Colors.age(entry.ageHuman);
   }
 
   private renderSection(title: string): string[] {

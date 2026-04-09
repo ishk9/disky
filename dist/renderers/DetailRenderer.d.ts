@@ -6,6 +6,7 @@ import { IRenderer } from '../interfaces/IRenderer';
 export declare class DetailRenderer implements IRenderer<DiskEntry> {
     render(entry: DiskEntry): string;
     private renderFields;
+    private renderAgeField;
     private renderSection;
     private renderLocation;
     private renderTopOffenders;

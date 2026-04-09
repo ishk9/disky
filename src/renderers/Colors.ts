@@ -6,13 +6,15 @@ import { ArtifactColorKey } from '../types';
  */
 export const Colors = {
   // Table columns
-  id:      chalk.dim,
-  size:    chalk.yellow,
-  path:    chalk.white,
-  project: chalk.magenta,
-  age:     chalk.green,
-  header:  chalk.cyan.bold,
-  dim:     chalk.dim,
+  id:       chalk.dim,
+  size:     chalk.yellow,
+  path:     chalk.white,
+  project:  chalk.magenta,
+  age:      chalk.green,
+  ageWarn:  chalk.yellow,
+  ageStale: chalk.red.bold,
+  header:   chalk.cyan.bold,
+  dim:      chalk.dim,
 
   // Branding
   brand:   chalk.cyan.bold,

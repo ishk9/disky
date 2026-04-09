@@ -1,3 +1,7 @@
+/** Age threshold for a "getting old" warning (30 days in ms). */
+export declare const AGE_WARN_MS: number;
+/** Age threshold for a "stale / slam-dunk delete" warning (90 days in ms). */
+export declare const AGE_STALE_MS: number;
 export type ArtifactColorKey = 'green' | 'cyan' | 'blue' | 'yellow' | 'gray' | 'red' | 'magenta';
 /**
  * Metadata about an artifact type (e.g. node_modules, .next, Docker).

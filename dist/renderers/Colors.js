@@ -15,6 +15,8 @@ exports.Colors = {
     path: chalk_1.default.white,
     project: chalk_1.default.magenta,
     age: chalk_1.default.green,
+    ageWarn: chalk_1.default.yellow,
+    ageStale: chalk_1.default.red.bold,
     header: chalk_1.default.cyan.bold,
     dim: chalk_1.default.dim,
     // Branding

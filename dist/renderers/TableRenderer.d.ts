@@ -14,6 +14,7 @@ export declare class TableRenderer implements IRenderer<DiskEntry[]> {
     private calculateWidths;
     private renderHeader;
     private renderRow;
+    private renderAge;
 }
 export {};
 //# sourceMappingURL=TableRenderer.d.ts.map

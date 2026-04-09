@@ -1,4 +1,4 @@
-import { DiskEntry } from '../types';
+import { DiskEntry, AGE_WARN_MS, AGE_STALE_MS } from '../types';
 import { Colors } from './Colors';
 import { IRenderer } from '../interfaces/IRenderer';
 
@@ -95,9 +95,7 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
       entry.project
         ? Colors.project(projectStr.padEnd(widths.project))
         : Colors.dim(projectStr.padEnd(widths.project)),
-      entry.ageMs > 0
-        ? Colors.age(ageStr.padEnd(widths.age))
-        : Colors.dim(ageStr.padEnd(widths.age)),
+      this.renderAge(entry, widths.age),
     ];
 
     const row = '  ' + cells.join('');
@@ -105,5 +103,17 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
     if (highlight === 'new')     return Colors.newEntry(row);
     if (highlight === 'removed') return Colors.removedEntry(row);
     return row;
+  }
+
+  private renderAge(entry: DiskEntry, colWidth: number): string {
+    if (entry.ageMs <= 0) return Colors.dim(entry.ageHuman.padEnd(colWidth));
+
+    if (entry.ageMs >= AGE_STALE_MS) {
+      return Colors.ageStale((entry.ageHuman + ' ⚠').padEnd(colWidth));
+    }
+    if (entry.ageMs >= AGE_WARN_MS) {
+      return Colors.ageWarn(entry.ageHuman.padEnd(colWidth));
+    }
+    return Colors.age(entry.ageHuman.padEnd(colWidth));
   }
 }
