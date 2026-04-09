@@ -120,9 +120,9 @@ export class DetailCommand implements ICommand {
   }
 
   private async removeEntry(entry: DiskEntry): Promise<void> {
-    const { execSync } = await import('child_process');
+    const { execFileSync } = await import('child_process');
     try {
-      execSync(`rm -rf "${entry.absolutePath}"`, { stdio: 'pipe' });
+      execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
       console.log(
         `\n  ${Colors.success('✓')} Removed ${Colors.artifact(entry.artifactType.color)(entry.artifactType.label)} ` +
         `${Colors.dim(entry.displayPath)}\n`,

@@ -183,7 +183,7 @@ class CleanCommand {
                 (0, child_process_1.execSync)('docker system prune -f 2>/dev/null', { stdio: 'pipe' });
             }
             else {
-                (0, child_process_1.execSync)(`rm -rf "${entry.absolutePath}"`, { stdio: 'pipe' });
+                (0, child_process_1.execFileSync)('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
             }
             return {
                 id: entry.id,

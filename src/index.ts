@@ -13,13 +13,14 @@ import { DetailCommand } from './commands/DetailCommand';
 import { CleanCommand } from './commands/CleanCommand';
 import { WatchCommand } from './commands/WatchCommand';
 import { Colors } from './renderers/Colors';
+import pkg from '../package.json';
 
 const program = new Command();
 
 program
   .name('disky')
   .description('Surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup')
-  .version('1.0.0');
+  .version(pkg.version);
 
 // ─── disky (welcome splash, no scan) ──────────────────────────────────────
 program

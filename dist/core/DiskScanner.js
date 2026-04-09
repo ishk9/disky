@@ -224,7 +224,7 @@ class DiskScanner {
     /** Returns size of a directory in bytes using `du -sk`. */
     getDirSizeBytes(dirPath) {
         try {
-            const raw = (0, child_process_1.execSync)(`du -sk "${dirPath}" 2>/dev/null`, {
+            const raw = (0, child_process_1.execFileSync)('du', ['-sk', dirPath], {
                 encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'pipe'],
             });
@@ -251,12 +251,15 @@ class DiskScanner {
      */
     getTopOffenders(dirPath) {
         try {
-            const raw = (0, child_process_1.execSync)(`du -sk "${dirPath}"/* 2>/dev/null | sort -rn | head -${TOP_OFFENDERS_LIMIT + 1}`, {
+            const children = fs.readdirSync(dirPath).map((name) => path.join(dirPath, name));
+            if (children.length === 0)
+                return [];
+            const raw = (0, child_process_1.execFileSync)('du', ['-sk', ...children], {
                 encoding: 'utf8',
                 stdio: ['pipe', 'pipe', 'pipe'],
             });
             const offenders = [];
-            for (const line of raw.split('\n').slice(0, TOP_OFFENDERS_LIMIT)) {
+            for (const line of raw.split('\n')) {
                 const trimmed = line.trim();
                 if (!trimmed)
                     continue;
@@ -272,7 +275,8 @@ class DiskScanner {
                     sizeHuman: formatBytes(sizeBytes),
                 });
             }
-            return offenders;
+            offenders.sort((a, b) => b.sizeBytes - a.sizeBytes);
+            return offenders.slice(0, TOP_OFFENDERS_LIMIT);
         }
         catch {
             return [];

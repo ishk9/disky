@@ -121,9 +121,9 @@ class DetailCommand {
         });
     }
     async removeEntry(entry) {
-        const { execSync } = await Promise.resolve().then(() => __importStar(require('child_process')));
+        const { execFileSync } = await Promise.resolve().then(() => __importStar(require('child_process')));
         try {
-            execSync(`rm -rf "${entry.absolutePath}"`, { stdio: 'pipe' });
+            execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
             console.log(`\n  ${Colors_1.Colors.success('✓')} Removed ${Colors_1.Colors.artifact(entry.artifactType.color)(entry.artifactType.label)} ` +
                 `${Colors_1.Colors.dim(entry.displayPath)}\n`);
         }

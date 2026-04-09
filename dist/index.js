@@ -1,5 +1,8 @@
 #!/usr/bin/env node
 "use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 // Gracefully handle broken pipes (e.g. `disky scan --json | head -20`)
 process.stdout.on('error', (err) => {
@@ -14,11 +17,12 @@ const DetailCommand_1 = require("./commands/DetailCommand");
 const CleanCommand_1 = require("./commands/CleanCommand");
 const WatchCommand_1 = require("./commands/WatchCommand");
 const Colors_1 = require("./renderers/Colors");
+const package_json_1 = __importDefault(require("../package.json"));
 const program = new commander_1.Command();
 program
     .name('disky')
     .description('Surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup')
-    .version('1.0.0');
+    .version(package_json_1.default.version);
 // ─── disky (welcome splash, no scan) ──────────────────────────────────────
 program
     .argument('[target]', 'Entry ID or directory path to inspect')
