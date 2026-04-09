@@ -75,18 +75,22 @@ class CleanCommand {
         }
         console.log('\n' + this.tableRenderer.render([entry]));
         console.log('');
-        if (this.options.dryRun) {
-            const label = entry.artifactType.label;
-            const loc = entry.project ?? entry.displayPath;
-            console.log(`  ${Colors_1.Colors.prompt('[DRY RUN]')} Would delete ${label} at ${loc} (${entry.sizeHuman})`);
-            console.log(`  ${Colors_1.Colors.dim('No files were modified.')}\n`);
-            return;
-        }
         const label = entry.artifactType.label;
         const loc = entry.project ?? entry.displayPath;
         const exclusions = this.getEffectiveExclusions();
+        const excluded = this.isExcluded(entry, exclusions);
+        if (this.options.dryRun) {
+            if (excluded) {
+                console.log(`  ${Colors_1.Colors.prompt('[DRY RUN]')} ${loc} is in your exclusion list — would be skipped`);
+            }
+            else {
+                console.log(`  ${Colors_1.Colors.prompt('[DRY RUN]')} Would delete ${label} at ${loc} (${entry.sizeHuman})`);
+            }
+            console.log(`  ${Colors_1.Colors.dim('No files were modified.')}\n`);
+            return;
+        }
         let promptText = `Delete ${label} at ${loc}? [y/N]`;
-        if (this.isExcluded(entry, exclusions)) {
+        if (excluded) {
             promptText = `${loc} is in your exclusion list. Remove anyway? [y/N]`;
         }
         const confirmed = await this.prompt(`  ${Colors_1.Colors.prompt(promptText)} `);

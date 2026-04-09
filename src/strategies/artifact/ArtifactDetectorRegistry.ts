@@ -88,8 +88,10 @@ export class ArtifactDetectorRegistry {
         // Path-based ones need separate handling; include their target basenames too
         'caches',       // Gradle
         'repository',   // Maven
-        '.pnpm-store',  // pnpm (legacy location)
-        'store',        // pnpm (XDG location)
+        // Note: pnpm (.pnpm-store, store) and bun (cache) are discovered via
+        // explicit fs.existsSync checks in DiskScanner.findArtifactPaths() — their
+        // basenames are too generic for the find filter and their path-based detectors
+        // won't match name-only probes.
       ];
       for (const name of probeNames) {
         if (detector.canDetect(name, name)) {
