@@ -32,14 +32,30 @@ npm link
 
 | Command | Description |
 |---|---|
-| `disky` | List top disk hogs (known build artifacts & caches) |
-| `disky --all` | List all large directories, no type filter |
+| `disky` | Show command list |
+| `disky scan` | Scan for disk hogs (known build artifacts & caches) |
+| `disky scan --all` | Include all large directories, no type filter |
+| `disky scan --min <size>` | Only show entries above a threshold (e.g. `500MB`, `1GB`) |
+| `disky scan --sort <mode>` | Sort by `size` (default), `age`, or `type` |
+| `disky scan --json` | Output results as JSON (pipe-friendly, no colors) |
 | `disky <id>` | Show detailed breakdown for a specific entry by ID |
 | `disky <path>` | Show detailed breakdown for a specific directory by path |
 | `disky clean` | Interactively remove all detected hogs |
 | `disky clean <id>` | Remove a specific entry by ID (interactive confirm) |
 | `disky clean <path>` | Remove a specific directory by path (interactive confirm) |
+| `disky clean --dry-run` | Preview what would be deleted without removing anything |
+| `disky clean --exclude <path>` | Skip specific paths during cleanup |
 | `disky watch` | Real-time monitor, refreshes every 5s (Ctrl+C to exit) |
+
+## Exclusion Config
+
+Persist paths to never clean in `~/.disky/config.json`:
+
+```json
+{ "exclude": ["~/work/active-project", "~/important/node_modules"] }
+```
+
+CLI `--exclude` flags are merged with the config file at runtime.
 
 ## Development
 
@@ -87,3 +103,5 @@ src/
 | `Docker` | stopped containers + dangling images | ✓ |
 | `Xcode DerivedData` | `~/Library/Developer/Xcode/DerivedData` | ✓ |
 | `CocoaPods` | `**/Pods` | ✓ |
+| `pnpm store` | `~/.pnpm-store`, `~/.local/share/pnpm/store` | ✓ |
+| `bun cache` | `~/.bun/install/cache` | ✓ |
