@@ -19,7 +19,7 @@
 ## Install
 
 ```bash
-npm install -g .
+npm install -g @ishk9/disky
 ```
 
 Or link for local development:
