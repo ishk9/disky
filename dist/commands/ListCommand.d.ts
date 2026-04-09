@@ -12,6 +12,8 @@ interface ListCommandOptions {
     sortMode?: 'size' | 'age' | 'type';
     /** Output results as JSON instead of a formatted table. */
     json?: boolean;
+    /** Limit output to the top N entries. */
+    top?: number;
 }
 /**
  * Handles `disky scan`, `disky scan --all`, and `disky scan --min <size>`.

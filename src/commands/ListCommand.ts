@@ -19,6 +19,8 @@ interface ListCommandOptions {
   sortMode?: 'size' | 'age' | 'type';
   /** Output results as JSON instead of a formatted table. */
   json?: boolean;
+  /** Limit output to the top N entries. */
+  top?: number;
 }
 
 /**
@@ -53,6 +55,10 @@ export class ListCommand implements ICommand {
     entries.forEach((e, i) => { e.id = i + 1; });
 
     this.cache.save(entries);
+
+    if (this.options.top !== undefined && this.options.top > 0) {
+      entries = entries.slice(0, this.options.top);
+    }
 
     // JSON output: no colors, no table chrome — just the data
     if (this.options.json) {

@@ -42,6 +42,7 @@ program
     .option('--min <size>', 'Only show entries at or above this size (e.g. 500MB, 1GB, 100KB)')
     .option('--sort <mode>', 'Sort results: size (default), age, or type')
     .option('--json', 'Output results as JSON (pipe-friendly, no colors)')
+    .option('--top <n>', 'Limit output to the top N entries', parseInt)
     .action((opts) => {
     const minBytes = opts.min ? (0, ListCommand_1.parseMinSize)(opts.min) : undefined;
     if (opts.min && (isNaN(minBytes) || minBytes <= 0)) {
@@ -54,7 +55,7 @@ program
         process.exit(1);
     }
     const sortMode = opts.sort ?? 'size';
-    new ListCommand_1.ListCommand({ artifactOnly: !opts.all, minBytes, sortMode, json: opts.json }).execute().catch(handleError);
+    new ListCommand_1.ListCommand({ artifactOnly: !opts.all, minBytes, sortMode, json: opts.json, top: opts.top }).execute().catch(handleError);
 });
 // ─── disky watch ──────────────────────────────────────────────────────────
 program

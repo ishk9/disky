@@ -27,6 +27,9 @@ class ListCommand {
         // Reassign sequential IDs after sorting so disky <id> matches displayed order
         entries.forEach((e, i) => { e.id = i + 1; });
         this.cache.save(entries);
+        if (this.options.top !== undefined && this.options.top > 0) {
+            entries = entries.slice(0, this.options.top);
+        }
         // JSON output: no colors, no table chrome — just the data
         if (this.options.json) {
             process.stdout.write(JSON.stringify(entries, null, 2) + '\n');
