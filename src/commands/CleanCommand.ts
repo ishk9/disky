@@ -3,8 +3,9 @@ import * as path from 'path';
 import { execSync } from 'child_process';
 import { ICommand } from '../interfaces/ICommand';
 import { IScanner } from '../interfaces/IScanner';
-import { DiskScanner } from '../core/DiskScanner';
+import { DiskScanner, formatBytes } from '../core/DiskScanner';
 import { ScanCache } from '../core/ScanCache';
+import { Config } from '../core/Config';
 import { TableRenderer } from '../renderers/TableRenderer';
 import { CleanRenderer, RemovalResult } from '../renderers/CleanRenderer';
 import { Colors } from '../renderers/Colors';
@@ -15,6 +16,10 @@ interface CleanCommandOptions {
   id?: number;
   /** Path of a specific directory to remove. */
   targetPath?: string;
+  /** Preview what would be deleted without removing anything. */
+  dryRun?: boolean;
+  /** CLI-provided paths to exclude from cleanup. */
+  excludePaths?: string[];
 }
 
 /**
@@ -23,6 +28,7 @@ interface CleanCommandOptions {
 export class CleanCommand implements ICommand {
   private readonly scanner: IScanner;
   private readonly cache: ScanCache;
+  private readonly config: Config;
   private readonly cleanRenderer: CleanRenderer;
   private readonly tableRenderer: TableRenderer;
 
@@ -32,6 +38,7 @@ export class CleanCommand implements ICommand {
   ) {
     this.scanner = scanner ?? new DiskScanner();
     this.cache = new ScanCache();
+    this.config = new Config();
     this.cleanRenderer = new CleanRenderer();
     this.tableRenderer = new TableRenderer();
   }
@@ -60,11 +67,24 @@ export class CleanCommand implements ICommand {
     console.log('\n' + this.tableRenderer.render([entry]));
     console.log('');
 
+    if (this.options.dryRun) {
+      const label = entry.artifactType.label;
+      const loc = entry.project ?? entry.displayPath;
+      console.log(`  ${Colors.prompt('[DRY RUN]')} Would delete ${label} at ${loc} (${entry.sizeHuman})`);
+      console.log(`  ${Colors.dim('No files were modified.')}\n`);
+      return;
+    }
+
     const label = entry.artifactType.label;
     const loc   = entry.project ?? entry.displayPath;
-    const confirmed = await this.prompt(
-      `  ${Colors.prompt(`Delete ${label} at ${loc}? [y/N]`)} `,
-    );
+    const exclusions = this.getEffectiveExclusions();
+
+    let promptText = `Delete ${label} at ${loc}? [y/N]`;
+    if (this.isExcluded(entry, exclusions)) {
+      promptText = `${loc} is in your exclusion list. Remove anyway? [y/N]`;
+    }
+
+    const confirmed = await this.prompt(`  ${Colors.prompt(promptText)} `);
 
     if (!confirmed) {
       console.log(`\n  ${Colors.dim('Aborted.')}\n`);
@@ -83,11 +103,27 @@ export class CleanCommand implements ICommand {
     const entries = await this.scanner.scan(true);
     this.cache.save(entries);
 
-    const safeEntries = entries.filter((e) => e.artifactType.safeToClean);
+    let safeEntries = entries.filter((e) => e.artifactType.safeToClean);
+
+    // Apply exclusions
+    const exclusions = this.getEffectiveExclusions();
+    const excludedCount = safeEntries.filter((e) => this.isExcluded(e, exclusions)).length;
+    safeEntries = safeEntries.filter((e) => !this.isExcluded(e, exclusions));
 
     process.stdout.write(this.cleanRenderer.render(safeEntries));
 
+    if (excludedCount > 0) {
+      console.log(`  ${Colors.dim(`Skipping ${excludedCount} excluded ${excludedCount === 1 ? 'entry' : 'entries'}`)}\n`);
+    }
+
     if (safeEntries.length === 0) return;
+
+    if (this.options.dryRun) {
+      const totalBytes = safeEntries.reduce((sum, e) => sum + e.sizeBytes, 0);
+      console.log(`  ${Colors.prompt('[DRY RUN]')} Would remove ${safeEntries.length} ${safeEntries.length === 1 ? 'entry' : 'entries'} totaling ${formatBytes(totalBytes)}`);
+      console.log(`  ${Colors.dim('No files were modified.')}\n`);
+      return;
+    }
 
     const confirmed = await this.prompt(`  ${Colors.prompt('Remove all? [y/N]')} `);
 
@@ -168,6 +204,19 @@ export class CleanCommand implements ICommand {
     } catch {
       return null;
     }
+  }
+
+  private getEffectiveExclusions(): string[] {
+    const configExclusions = this.config.getExclusions();
+    const cliExclusions = (this.options.excludePaths ?? []).map((p) => this.expandPath(p));
+    return [...new Set([...configExclusions, ...cliExclusions])];
+  }
+
+  private isExcluded(entry: DiskEntry, exclusions: string[]): boolean {
+    if (entry.isDockerEntry) return false;
+    return exclusions.some((ex) =>
+      entry.absolutePath === ex || entry.absolutePath.startsWith(ex + path.sep),
+    );
   }
 
   private expandPath(p: string): string {

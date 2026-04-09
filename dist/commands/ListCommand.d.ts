@@ -8,6 +8,10 @@ interface ListCommandOptions {
      * are shown. Parses strings like "500MB", "1.5GB", "100KB".
      */
     minBytes?: number;
+    /** Sort mode: size (default), age (oldest first), or type (grouped by label). */
+    sortMode?: 'size' | 'age' | 'type';
+    /** Output results as JSON instead of a formatted table. */
+    json?: boolean;
 }
 /**
  * Handles `disky scan`, `disky scan --all`, and `disky scan --min <size>`.
@@ -20,6 +24,7 @@ export declare class ListCommand implements ICommand {
     private readonly tableRenderer;
     constructor(options: ListCommandOptions, scanner?: IScanner);
     execute(): Promise<void>;
+    private sortEntries;
     private buildFooter;
 }
 /**

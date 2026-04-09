@@ -23,7 +23,15 @@ class ListCommand {
         if (this.options.minBytes !== undefined && this.options.minBytes > 0) {
             entries = entries.filter((e) => e.sizeBytes >= this.options.minBytes);
         }
+        this.sortEntries(entries);
+        // Reassign sequential IDs after sorting so disky <id> matches displayed order
+        entries.forEach((e, i) => { e.id = i + 1; });
         this.cache.save(entries);
+        // JSON output: no colors, no table chrome — just the data
+        if (this.options.json) {
+            process.stdout.write(JSON.stringify(entries, null, 2) + '\n');
+            return;
+        }
         console.log('\n' + this.headerRenderer.render());
         console.log('');
         if (this.options.minBytes) {
@@ -40,11 +48,30 @@ class ListCommand {
         console.log(this.buildFooter(entries));
         console.log('');
     }
+    sortEntries(entries) {
+        const mode = this.options.sortMode ?? 'size';
+        switch (mode) {
+            case 'age':
+                entries.sort((a, b) => b.ageMs - a.ageMs);
+                break;
+            case 'type':
+                entries.sort((a, b) => a.artifactType.label.localeCompare(b.artifactType.label) || b.sizeBytes - a.sizeBytes);
+                break;
+            case 'size':
+            default:
+                entries.sort((a, b) => b.sizeBytes - a.sizeBytes);
+                break;
+        }
+    }
     buildFooter(entries) {
         const totalBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
         const parts = [`${(0, DiskScanner_1.formatBytes)(totalBytes)} recoverable`, 'Run disky <id> for details'];
         if (this.options.artifactOnly) {
             parts.push('disky clean to free space');
+        }
+        const sortMode = this.options.sortMode ?? 'size';
+        if (sortMode !== 'size') {
+            parts.push(`sorted by ${sortMode}`);
         }
         return '  ' + Colors_1.Colors.dim(parts.join('  ·  '));
     }

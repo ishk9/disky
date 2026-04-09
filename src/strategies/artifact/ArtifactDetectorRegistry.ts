@@ -12,6 +12,8 @@ import { GradleDetector } from './GradleDetector';
 import { MavenDetector } from './MavenDetector';
 import { XcodeDetector } from './XcodeDetector';
 import { CocoaPodsDetector } from './CocoaPodsDetector';
+import { PnpmStoreDetector } from './PnpmStoreDetector';
+import { BunCacheDetector } from './BunCacheDetector';
 
 /**
  * Registry (Singleton) that holds all artifact detectors and applies the Strategy
@@ -30,6 +32,8 @@ export class ArtifactDetectorRegistry {
       new GradleDetector(),
       new MavenDetector(),
       new XcodeDetector(),
+      new PnpmStoreDetector(),
+      new BunCacheDetector(),
       // Name-only detectors
       new NodeModulesDetector(),
       new NextDetector(),
@@ -84,6 +88,8 @@ export class ArtifactDetectorRegistry {
         // Path-based ones need separate handling; include their target basenames too
         'caches',       // Gradle
         'repository',   // Maven
+        '.pnpm-store',  // pnpm (legacy location)
+        'store',        // pnpm (XDG location)
       ];
       for (const name of probeNames) {
         if (detector.canDetect(name, name)) {

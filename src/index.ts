@@ -33,7 +33,9 @@ program
   .description('Scan for disk hogs and show a ranked table')
   .option('--all', 'Include all large directories, not just known artifact types')
   .option('--min <size>', 'Only show entries at or above this size (e.g. 500MB, 1GB, 100KB)')
-  .action((opts: { all?: boolean; min?: string }) => {
+  .option('--sort <mode>', 'Sort results: size (default), age, or type')
+  .option('--json', 'Output results as JSON (pipe-friendly, no colors)')
+  .action((opts: { all?: boolean; min?: string; sort?: string; json?: boolean }) => {
     const minBytes = opts.min ? parseMinSize(opts.min) : undefined;
 
     if (opts.min && (isNaN(minBytes!) || minBytes! <= 0)) {
@@ -41,7 +43,14 @@ program
       process.exit(1);
     }
 
-    new ListCommand({ artifactOnly: !opts.all, minBytes }).execute().catch(handleError);
+    const validSortModes = ['size', 'age', 'type'];
+    if (opts.sort && !validSortModes.includes(opts.sort)) {
+      console.error(`\n  ${Colors.error(`Invalid sort mode "${opts.sort}". Use: size, age, or type.\n`)}`);
+      process.exit(1);
+    }
+
+    const sortMode = (opts.sort as 'size' | 'age' | 'type') ?? 'size';
+    new ListCommand({ artifactOnly: !opts.all, minBytes, sortMode, json: opts.json }).execute().catch(handleError);
   });
 
 // ─── disky watch ──────────────────────────────────────────────────────────
@@ -56,9 +65,11 @@ program
 program
   .command('clean [target]')
   .description('Remove disk hogs. Pass an ID or path to target a specific entry; omit for interactive bulk cleanup')
-  .action((target?: string) => {
+  .option('--dry-run', 'Preview what would be deleted without removing anything')
+  .option('--exclude <paths...>', 'Paths to skip during cleanup (repeatable)')
+  .action((target?: string, cmdOpts?: { dryRun?: boolean; exclude?: string[] }) => {
     const opts = resolveTarget(target);
-    new CleanCommand(opts).execute().catch(handleError);
+    new CleanCommand({ ...opts, dryRun: cmdOpts?.dryRun, excludePaths: cmdOpts?.exclude }).execute().catch(handleError);
   });
 
 program.parse(process.argv);

@@ -93,10 +93,25 @@ export class DiskScanner implements IScanner {
 
     if (result.status !== 0 && !result.stdout) return [];
 
-    return (result.stdout ?? '')
+    const paths = (result.stdout ?? '')
       .split('\n')
       .map((l) => l.trim())
       .filter(Boolean);
+
+    // Check well-known global cache paths directly — their basenames (e.g. "cache",
+    // "store") are too generic for the `find` filter, so we probe them explicitly.
+    const globalCachePaths = [
+      path.join(home, '.bun', 'install', 'cache'),
+      path.join(home, '.pnpm-store'),
+      path.join(home, '.local', 'share', 'pnpm', 'store'),
+    ];
+    for (const p of globalCachePaths) {
+      if (fs.existsSync(p) && !paths.includes(p)) {
+        paths.push(p);
+      }
+    }
+
+    return paths;
   }
 
   // ─── All-mode scanning ───────────────────────────────────────────────────
