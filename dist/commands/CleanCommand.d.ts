@@ -5,6 +5,10 @@ interface CleanCommandOptions {
     id?: number;
     /** Path of a specific directory to remove. */
     targetPath?: string;
+    /** Preview what would be deleted without removing anything. */
+    dryRun?: boolean;
+    /** CLI-provided paths to exclude from cleanup. */
+    excludePaths?: string[];
 }
 /**
  * Handles `disky clean`, `disky clean <id>`, and `disky clean <path>`.
@@ -13,6 +17,7 @@ export declare class CleanCommand implements ICommand {
     private readonly options;
     private readonly scanner;
     private readonly cache;
+    private readonly config;
     private readonly cleanRenderer;
     private readonly tableRenderer;
     constructor(options?: CleanCommandOptions, scanner?: IScanner);
@@ -25,6 +30,8 @@ export declare class CleanCommand implements ICommand {
      * Returns null on failure.
      */
     private remove;
+    private getEffectiveExclusions;
+    private isExcluded;
     private expandPath;
     private prompt;
 }

@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.DetailRenderer = void 0;
+const types_1 = require("../types");
 const Colors_1 = require("./Colors");
 /**
  * Renders the full detail view for a single disk entry (`disky <id>` / `disky <path>`).
@@ -24,14 +25,31 @@ class DetailRenderer {
     }
     renderFields(entry) {
         const label = (s) => Colors_1.Colors.sectionLabel(s.padEnd(14));
-        return [
+        const ageDisplay = this.renderAgeField(entry);
+        const lines = [
             `  ${label('ID')}${Colors_1.Colors.id(String(entry.id))}`,
             `  ${label('Type')}${Colors_1.Colors.artifact(entry.artifactType.color)(entry.artifactType.label)}`,
             `  ${label('Size')}${Colors_1.Colors.size(entry.sizeHuman)}`,
             `  ${label('Path')}${Colors_1.Colors.path(entry.displayPath)}`,
             `  ${label('Project')}${entry.project ? Colors_1.Colors.project(entry.project) : Colors_1.Colors.dim('–')}`,
-            `  ${label('Last Modified')}${entry.ageMs > 0 ? Colors_1.Colors.age(entry.ageHuman) : Colors_1.Colors.dim('–')}`,
+            `  ${label('Last Modified')}${ageDisplay}`,
         ];
+        if (entry.ageMs >= types_1.AGE_STALE_MS) {
+            lines.push(`  ${Colors_1.Colors.ageStale('⚠  Not touched in over 90 days — safe to remove')}`);
+        }
+        else if (entry.ageMs >= types_1.AGE_WARN_MS) {
+            lines.push(`  ${Colors_1.Colors.ageWarn('·  Unused for over 30 days')}`);
+        }
+        return lines;
+    }
+    renderAgeField(entry) {
+        if (entry.ageMs <= 0)
+            return Colors_1.Colors.dim('–');
+        if (entry.ageMs >= types_1.AGE_STALE_MS)
+            return Colors_1.Colors.ageStale(entry.ageHuman + ' ⚠');
+        if (entry.ageMs >= types_1.AGE_WARN_MS)
+            return Colors_1.Colors.ageWarn(entry.ageHuman);
+        return Colors_1.Colors.age(entry.ageHuman);
     }
     renderSection(title) {
         const dashes = Colors_1.Colors.dim('─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─');

@@ -39,6 +39,7 @@ const path = __importStar(require("path"));
 const child_process_1 = require("child_process");
 const DiskScanner_1 = require("../core/DiskScanner");
 const ScanCache_1 = require("../core/ScanCache");
+const Config_1 = require("../core/Config");
 const TableRenderer_1 = require("../renderers/TableRenderer");
 const CleanRenderer_1 = require("../renderers/CleanRenderer");
 const Colors_1 = require("../renderers/Colors");
@@ -50,6 +51,7 @@ class CleanCommand {
         this.options = options;
         this.scanner = scanner ?? new DiskScanner_1.DiskScanner();
         this.cache = new ScanCache_1.ScanCache();
+        this.config = new Config_1.Config();
         this.cleanRenderer = new CleanRenderer_1.CleanRenderer();
         this.tableRenderer = new TableRenderer_1.TableRenderer();
     }
@@ -75,7 +77,23 @@ class CleanCommand {
         console.log('');
         const label = entry.artifactType.label;
         const loc = entry.project ?? entry.displayPath;
-        const confirmed = await this.prompt(`  ${Colors_1.Colors.prompt(`Delete ${label} at ${loc}? [y/N]`)} `);
+        const exclusions = this.getEffectiveExclusions();
+        const excluded = this.isExcluded(entry, exclusions);
+        if (this.options.dryRun) {
+            if (excluded) {
+                console.log(`  ${Colors_1.Colors.prompt('[DRY RUN]')} ${loc} is in your exclusion list — would be skipped`);
+            }
+            else {
+                console.log(`  ${Colors_1.Colors.prompt('[DRY RUN]')} Would delete ${label} at ${loc} (${entry.sizeHuman})`);
+            }
+            console.log(`  ${Colors_1.Colors.dim('No files were modified.')}\n`);
+            return;
+        }
+        let promptText = `Delete ${label} at ${loc}? [y/N]`;
+        if (excluded) {
+            promptText = `${loc} is in your exclusion list. Remove anyway? [y/N]`;
+        }
+        const confirmed = await this.prompt(`  ${Colors_1.Colors.prompt(promptText)} `);
         if (!confirmed) {
             console.log(`\n  ${Colors_1.Colors.dim('Aborted.')}\n`);
             return;
@@ -89,10 +107,23 @@ class CleanCommand {
     async removeBulk() {
         const entries = await this.scanner.scan(true);
         this.cache.save(entries);
-        const safeEntries = entries.filter((e) => e.artifactType.safeToClean);
+        let safeEntries = entries.filter((e) => e.artifactType.safeToClean);
+        // Apply exclusions
+        const exclusions = this.getEffectiveExclusions();
+        const excludedCount = safeEntries.filter((e) => this.isExcluded(e, exclusions)).length;
+        safeEntries = safeEntries.filter((e) => !this.isExcluded(e, exclusions));
         process.stdout.write(this.cleanRenderer.render(safeEntries));
+        if (excludedCount > 0) {
+            console.log(`  ${Colors_1.Colors.dim(`Skipping ${excludedCount} excluded ${excludedCount === 1 ? 'entry' : 'entries'}`)}\n`);
+        }
         if (safeEntries.length === 0)
             return;
+        if (this.options.dryRun) {
+            const totalBytes = safeEntries.reduce((sum, e) => sum + e.sizeBytes, 0);
+            console.log(`  ${Colors_1.Colors.prompt('[DRY RUN]')} Would remove ${safeEntries.length} ${safeEntries.length === 1 ? 'entry' : 'entries'} totaling ${(0, DiskScanner_1.formatBytes)(totalBytes)}`);
+            console.log(`  ${Colors_1.Colors.dim('No files were modified.')}\n`);
+            return;
+        }
         const confirmed = await this.prompt(`  ${Colors_1.Colors.prompt('Remove all? [y/N]')} `);
         if (!confirmed) {
             console.log(`\n  ${Colors_1.Colors.dim('Aborted.')}\n`);
@@ -164,6 +195,16 @@ class CleanCommand {
         catch {
             return null;
         }
+    }
+    getEffectiveExclusions() {
+        const configExclusions = this.config.getExclusions();
+        const cliExclusions = (this.options.excludePaths ?? []).map((p) => this.expandPath(p));
+        return [...new Set([...configExclusions, ...cliExclusions])];
+    }
+    isExcluded(entry, exclusions) {
+        if (entry.isDockerEntry)
+            return false;
+        return exclusions.some((ex) => entry.absolutePath === ex || entry.absolutePath.startsWith(ex + path.sep));
     }
     expandPath(p) {
         if (p.startsWith('~/')) {

@@ -9,6 +9,8 @@ export declare const Colors: {
     readonly path: chalk.Chalk;
     readonly project: chalk.Chalk;
     readonly age: chalk.Chalk;
+    readonly ageWarn: chalk.Chalk;
+    readonly ageStale: chalk.Chalk;
     readonly header: chalk.Chalk;
     readonly dim: chalk.Chalk;
     readonly brand: chalk.Chalk;

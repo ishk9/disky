@@ -1,6 +1,7 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.TableRenderer = void 0;
+const types_1 = require("../types");
 const Colors_1 = require("./Colors");
 const COLS = {
     id: { header: 'ID', min: 6 },
@@ -70,9 +71,7 @@ class TableRenderer {
             entry.project
                 ? Colors_1.Colors.project(projectStr.padEnd(widths.project))
                 : Colors_1.Colors.dim(projectStr.padEnd(widths.project)),
-            entry.ageMs > 0
-                ? Colors_1.Colors.age(ageStr.padEnd(widths.age))
-                : Colors_1.Colors.dim(ageStr.padEnd(widths.age)),
+            this.renderAge(entry, widths.age),
         ];
         const row = '  ' + cells.join('');
         if (highlight === 'new')
@@ -80,6 +79,17 @@ class TableRenderer {
         if (highlight === 'removed')
             return Colors_1.Colors.removedEntry(row);
         return row;
+    }
+    renderAge(entry, colWidth) {
+        if (entry.ageMs <= 0)
+            return Colors_1.Colors.dim(entry.ageHuman.padEnd(colWidth));
+        if (entry.ageMs >= types_1.AGE_STALE_MS) {
+            return Colors_1.Colors.ageStale((entry.ageHuman + ' ⚠').padEnd(colWidth));
+        }
+        if (entry.ageMs >= types_1.AGE_WARN_MS) {
+            return Colors_1.Colors.ageWarn(entry.ageHuman.padEnd(colWidth));
+        }
+        return Colors_1.Colors.age(entry.ageHuman.padEnd(colWidth));
     }
 }
 exports.TableRenderer = TableRenderer;

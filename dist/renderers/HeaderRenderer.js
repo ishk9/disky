@@ -10,13 +10,14 @@ class HeaderRenderer {
         this.BOX_WIDTH = 65;
     }
     render(options = {}) {
-        const title = '🗑️  disky';
+        const title = '🗑️ disky';
         const tagline = 'gobbling up your space...';
         const watchLabel = 'watching · Ctrl+C exit';
         const top = `┌${'─'.repeat(this.BOX_WIDTH)}┐`;
         const bottom = `└${'─'.repeat(this.BOX_WIDTH)}┘`;
-        // Emoji in "🗑️" renders as ~2 chars wide; compensate for box alignment
-        const titleVisualLen = title.replace(/\uFE0F/g, '').length + 1;
+        // Emoji "🗑️" is a surrogate pair (JS len 2) + zero-width FE0F selector.
+        // After stripping FE0F, .length already matches visual columns (emoji=2cols).
+        const titleVisualLen = title.replace(/\uFE0F/g, '').length;
         let titleLine;
         if (options.watchMode) {
             const gap = this.BOX_WIDTH - titleVisualLen - watchLabel.length - 2;

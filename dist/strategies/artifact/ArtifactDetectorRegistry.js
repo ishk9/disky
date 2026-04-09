@@ -13,6 +13,8 @@ const GradleDetector_1 = require("./GradleDetector");
 const MavenDetector_1 = require("./MavenDetector");
 const XcodeDetector_1 = require("./XcodeDetector");
 const CocoaPodsDetector_1 = require("./CocoaPodsDetector");
+const PnpmStoreDetector_1 = require("./PnpmStoreDetector");
+const BunCacheDetector_1 = require("./BunCacheDetector");
 /**
  * Registry (Singleton) that holds all artifact detectors and applies the Strategy
  * pattern: the first detector whose canDetect() returns true wins.
@@ -27,6 +29,8 @@ class ArtifactDetectorRegistry {
             new GradleDetector_1.GradleDetector(),
             new MavenDetector_1.MavenDetector(),
             new XcodeDetector_1.XcodeDetector(),
+            new PnpmStoreDetector_1.PnpmStoreDetector(),
+            new BunCacheDetector_1.BunCacheDetector(),
             // Name-only detectors
             new NodeModulesDetector_1.NodeModulesDetector(),
             new NextDetector_1.NextDetector(),
@@ -77,6 +81,10 @@ class ArtifactDetectorRegistry {
                 // Path-based ones need separate handling; include their target basenames too
                 'caches', // Gradle
                 'repository', // Maven
+                // Note: pnpm (.pnpm-store, store) and bun (cache) are discovered via
+                // explicit fs.existsSync checks in DiskScanner.findArtifactPaths() — their
+                // basenames are too generic for the find filter and their path-based detectors
+                // won't match name-only probes.
             ];
             for (const name of probeNames) {
                 if (detector.canDetect(name, name)) {

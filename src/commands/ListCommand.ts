@@ -15,6 +15,10 @@ interface ListCommandOptions {
    * are shown. Parses strings like "500MB", "1.5GB", "100KB".
    */
   minBytes?: number;
+  /** Sort mode: size (default), age (oldest first), or type (grouped by label). */
+  sortMode?: 'size' | 'age' | 'type';
+  /** Output results as JSON instead of a formatted table. */
+  json?: boolean;
 }
 
 /**
@@ -43,7 +47,18 @@ export class ListCommand implements ICommand {
       entries = entries.filter((e) => e.sizeBytes >= this.options.minBytes!);
     }
 
+    this.sortEntries(entries);
+
+    // Reassign sequential IDs after sorting so disky <id> matches displayed order
+    entries.forEach((e, i) => { e.id = i + 1; });
+
     this.cache.save(entries);
+
+    // JSON output: no colors, no table chrome — just the data
+    if (this.options.json) {
+      process.stdout.write(JSON.stringify(entries, null, 2) + '\n');
+      return;
+    }
 
     console.log('\n' + this.headerRenderer.render());
     console.log('');
@@ -64,12 +79,35 @@ export class ListCommand implements ICommand {
     console.log('');
   }
 
+  private sortEntries(entries: DiskEntry[]): void {
+    const mode = this.options.sortMode ?? 'size';
+    switch (mode) {
+      case 'age':
+        entries.sort((a, b) => b.ageMs - a.ageMs);
+        break;
+      case 'type':
+        entries.sort((a, b) =>
+          a.artifactType.label.localeCompare(b.artifactType.label) || b.sizeBytes - a.sizeBytes,
+        );
+        break;
+      case 'size':
+      default:
+        entries.sort((a, b) => b.sizeBytes - a.sizeBytes);
+        break;
+    }
+  }
+
   private buildFooter(entries: DiskEntry[]): string {
     const totalBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
     const parts: string[] = [`${formatBytes(totalBytes)} recoverable`, 'Run disky <id> for details'];
 
     if (this.options.artifactOnly) {
       parts.push('disky clean to free space');
+    }
+
+    const sortMode = this.options.sortMode ?? 'size';
+    if (sortMode !== 'size') {
+      parts.push(`sorted by ${sortMode}`);
     }
 
     return '  ' + Colors.dim(parts.join('  ·  '));
