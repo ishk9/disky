@@ -11,6 +11,7 @@ const COMMANDS = [
     { cmd: 'disky <path>', desc: 'Detailed breakdown for a directory path' },
     { cmd: 'disky clean', desc: 'Interactively remove all detected hogs' },
     { cmd: 'disky clean <id>', desc: 'Remove a specific entry by ID' },
+    { cmd: 'disky clean <path>', desc: 'Remove a specific directory by path' },
     { cmd: 'disky watch', desc: 'Real-time monitor, refreshes every 5s' },
 ];
 /**
