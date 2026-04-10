@@ -1,0 +1,17 @@
+# Digital Mycelium
+
+**An algorithmic philosophy for disky**
+
+Files spread through a filesystem the way fungal networks colonize soil — silently, persistently, branching into every crevice until the substrate is consumed. `node_modules` are spore clusters, build artifacts are fruiting bodies, and caches are the hidden hyphal threads connecting it all beneath the surface. Digital Mycelium is a computational philosophy that makes this invisible organic sprawl *visible* — rendering the hidden topology of disk consumption as living, breathing networks in the terminal.
+
+The algorithm begins with seed points placed at weighted positions corresponding to actual scan results. From each seed, branching filaments extend outward using a 2D simplex noise field that determines growth direction. The noise is sampled at multiple octaves — a low-frequency base layer creates broad regional flow (the "soil composition"), while high-frequency detail layers add the organic jitter that prevents any two branches from following the same path. Each filament carries a density value that accumulates where branches overlap, building up bright nodes at convergence points — the visual equivalent of a `node_modules` directory that every project depends on.
+
+Color emerges from artifact type, not from aesthetic whim. Each artifact category (dependency caches, build outputs, IDE files, Docker images) maps to a spectral band. Where filaments from different categories intersect, their colors blend through additive mixing, creating interference patterns that reveal which parts of the filesystem are contested by multiple types of bloat. The filament thickness encodes age: fresh artifacts produce thin, bright tendrils; stale 90-day relics generate thick, dim roots that look fossilized into the substrate. Every parameter in this system — growth rate, branching probability, noise scale, decay factor — has been calibrated through painstaking iteration to produce output that feels both mathematically precise and organically alive.
+
+The temporal dimension is where Digital Mycelium transcends static visualization. In its animated form, the network *grows* — filaments extend in real-time, each new discovery triggering a fresh branching event. During cleanup, the inverse occurs: deleted entries cause their filaments to wither from the tips inward, the braille characters degrading from `⣿` through `⣶`, `⣤`, `⠒`, `⠂` to empty space, like time-lapse footage of decomposition. The cleanup animation should feel *satisfying* — the visual reward for reclaiming disk space.
+
+The rendering substrate is the terminal itself. Each character cell becomes a 2x4 pixel grid via Unicode braille patterns (U+2800-U+28FF), giving 8 sub-character "pixels" per cell. Block elements (░▒▓█) provide density fills for larger regions. Box-drawing characters (╭╮╰╯│─) frame the organic growth with geometric structure — the tension between the wild mycelial network and the rigid terminal grid *is* the aesthetic.
+
+## Conceptual Seed
+
+Mycelium networks are nature's internet — they connect trees in forests, redistributing nutrients from abundance to scarcity. Disky does the same for disk space: it maps the hidden network of file dependencies, identifies where resources have accumulated beyond need, and enables redistribution. Someone who knows mycology will feel this connection intuitively. Everyone else simply sees beautiful organic generative art in their terminal.
