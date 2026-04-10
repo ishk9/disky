@@ -1,5 +1,5 @@
-import { IArtifactDetector } from '../../interfaces/IArtifactDetector';
-import { ArtifactTypeInfo } from '../../types';
+import { IArtifactDetector } from '../../interfaces/IArtifactDetector.js';
+import { ArtifactTypeInfo } from '../../types/index.js';
 import * as os from 'os';
 import * as path from 'path';
 

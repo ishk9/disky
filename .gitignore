@@ -21,6 +21,10 @@ Thumbs.db
 # Tests
 tests/
 
+# Docs (local only)
+future-scope.md
+
 # Debug
 *.log
 npm-debug.log*
+.gstack/

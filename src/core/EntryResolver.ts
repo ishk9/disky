@@ -1,9 +1,9 @@
 import * as readline from 'readline';
 import * as path from 'path';
-import { IScanner } from '../interfaces/IScanner';
-import { ScanCache } from './ScanCache';
-import { Config } from './Config';
-import { DiskEntry } from '../types';
+import { IScanner } from '../interfaces/IScanner.js';
+import { ScanCache } from './ScanCache.js';
+import { Config } from './Config.js';
+import { DiskEntry } from '../types/index.js';
 
 /** Expands ~ paths and resolves relative paths to absolute. */
 export function expandPath(p: string): string {

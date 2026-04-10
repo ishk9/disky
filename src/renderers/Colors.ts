@@ -1,5 +1,5 @@
 import chalk from 'chalk';
-import { ArtifactColorKey } from '../types';
+import { ArtifactColorKey } from '../types/index.js';
 
 /**
  * Centralised color palette — single place to change the entire visual theme.

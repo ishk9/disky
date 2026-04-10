@@ -2,11 +2,11 @@ import { execSync, execFileSync, spawnSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { IScanner } from '../interfaces/IScanner';
-import { DiskEntry, TopOffender, ArtifactTypeInfo } from '../types';
-import { ProjectDetector } from './ProjectDetector';
-import { DockerScanner } from './DockerScanner';
-import { ArtifactDetectorRegistry } from '../strategies/artifact/ArtifactDetectorRegistry';
+import { IScanner } from '../interfaces/IScanner.js';
+import { DiskEntry, TopOffender, ArtifactTypeInfo } from '../types/index.js';
+import { ProjectDetector } from './ProjectDetector.js';
+import { DockerScanner } from './DockerScanner.js';
+import { ArtifactDetectorRegistry } from '../strategies/artifact/ArtifactDetectorRegistry.js';
 
 /** Directories skipped when walking the filesystem to avoid infinite loops / system noise. */
 const SKIP_DIRS = new Set([

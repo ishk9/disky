@@ -2,6 +2,7 @@
   "name": "@ishk9/disky",
   "version": "1.0.2",
   "description": "CLI that surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup",
+  "type": "module",
   "main": "dist/index.js",
   "bin": {
     "disky": "./dist/index.js"
@@ -32,10 +33,13 @@
   "license": "MIT",
   "dependencies": {
     "chalk": "^4.1.2",
-    "commander": "^12.0.0"
+    "commander": "^12.0.0",
+    "ink": "^4.4.1",
+    "react": "^18.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
+    "@types/react": "^18.3.28",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
     "vitest": "^4.1.4"

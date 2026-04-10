@@ -1,4 +1,4 @@
-import { Colors } from './Colors';
+import { Colors } from './Colors.js';
 
 interface HeaderOptions {
   watchMode?: boolean;

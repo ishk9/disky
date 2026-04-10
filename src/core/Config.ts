@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { Colors } from '../renderers/Colors';
+import { Colors } from '../renderers/Colors.js';
 
 interface DiskyConfig {
   exclude: string[];

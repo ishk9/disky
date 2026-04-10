@@ -1,12 +1,12 @@
-import { ICommand } from '../interfaces/ICommand';
-import { IScanner } from '../interfaces/IScanner';
-import { DiskScanner } from '../core/DiskScanner';
-import { ScanCache } from '../core/ScanCache';
-import { Config } from '../core/Config';
-import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver';
-import { DetailRenderer } from '../renderers/DetailRenderer';
-import { Colors } from '../renderers/Colors';
-import { DiskEntry } from '../types';
+import { ICommand } from '../interfaces/ICommand.js';
+import { IScanner } from '../interfaces/IScanner.js';
+import { DiskScanner } from '../core/DiskScanner.js';
+import { ScanCache } from '../core/ScanCache.js';
+import { Config } from '../core/Config.js';
+import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver.js';
+import { DetailRenderer } from '../renderers/DetailRenderer.js';
+import { Colors } from '../renderers/Colors.js';
+import { DiskEntry } from '../types/index.js';
 
 interface DetailCommandOptions {
   /** Numeric ID from the last scan table. Takes priority over path. */

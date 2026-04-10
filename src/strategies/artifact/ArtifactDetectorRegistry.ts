@@ -1,19 +1,19 @@
-import { IArtifactDetector } from '../../interfaces/IArtifactDetector';
-import { ArtifactTypeInfo } from '../../types';
-import { NodeModulesDetector } from './NodeModulesDetector';
-import { NextDetector } from './NextDetector';
-import { NuxtDetector } from './NuxtDetector';
-import { DistDetector } from './DistDetector';
-import { BuildDetector } from './BuildDetector';
-import { OutDetector } from './OutDetector';
-import { TurboDetector } from './TurboDetector';
-import { CacheDetector } from './CacheDetector';
-import { GradleDetector } from './GradleDetector';
-import { MavenDetector } from './MavenDetector';
-import { XcodeDetector } from './XcodeDetector';
-import { CocoaPodsDetector } from './CocoaPodsDetector';
-import { PnpmStoreDetector } from './PnpmStoreDetector';
-import { BunCacheDetector } from './BunCacheDetector';
+import { IArtifactDetector } from '../../interfaces/IArtifactDetector.js';
+import { ArtifactTypeInfo } from '../../types/index.js';
+import { NodeModulesDetector } from './NodeModulesDetector.js';
+import { NextDetector } from './NextDetector.js';
+import { NuxtDetector } from './NuxtDetector.js';
+import { DistDetector } from './DistDetector.js';
+import { BuildDetector } from './BuildDetector.js';
+import { OutDetector } from './OutDetector.js';
+import { TurboDetector } from './TurboDetector.js';
+import { CacheDetector } from './CacheDetector.js';
+import { GradleDetector } from './GradleDetector.js';
+import { MavenDetector } from './MavenDetector.js';
+import { XcodeDetector } from './XcodeDetector.js';
+import { CocoaPodsDetector } from './CocoaPodsDetector.js';
+import { PnpmStoreDetector } from './PnpmStoreDetector.js';
+import { BunCacheDetector } from './BunCacheDetector.js';
 
 /**
  * Registry (Singleton) that holds all artifact detectors and applies the Strategy

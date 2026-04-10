@@ -1,4 +1,4 @@
-import { ArtifactTypeInfo } from '../types';
+import { ArtifactTypeInfo } from '../types/index.js';
 
 /**
  * Strategy interface: each implementation matches one artifact type

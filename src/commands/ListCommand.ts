@@ -1,11 +1,11 @@
-import { ICommand } from '../interfaces/ICommand';
-import { IScanner } from '../interfaces/IScanner';
-import { DiskEntry } from '../types';
-import { DiskScanner, formatBytes } from '../core/DiskScanner';
-import { ScanCache } from '../core/ScanCache';
-import { HeaderRenderer } from '../renderers/HeaderRenderer';
-import { TableRenderer } from '../renderers/TableRenderer';
-import { Colors } from '../renderers/Colors';
+import { ICommand } from '../interfaces/ICommand.js';
+import { IScanner } from '../interfaces/IScanner.js';
+import { DiskEntry } from '../types/index.js';
+import { DiskScanner, formatBytes } from '../core/DiskScanner.js';
+import { ScanCache } from '../core/ScanCache.js';
+import { HeaderRenderer } from '../renderers/HeaderRenderer.js';
+import { TableRenderer } from '../renderers/TableRenderer.js';
+import { Colors } from '../renderers/Colors.js';
 
 interface ListCommandOptions {
   /** When false, show all large directories (--all mode). */

@@ -1,6 +1,6 @@
-import { ICommand } from '../interfaces/ICommand';
-import { Colors } from '../renderers/Colors';
-import { HeaderRenderer } from '../renderers/HeaderRenderer';
+import { ICommand } from '../interfaces/ICommand.js';
+import { Colors } from '../renderers/Colors.js';
+import { HeaderRenderer } from '../renderers/HeaderRenderer.js';
 
 const COMMANDS = [
   { cmd: 'disky scan',              desc: 'Scan for disk hogs (node_modules, .next, dist, caches…)' },

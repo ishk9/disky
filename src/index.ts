@@ -7,13 +7,15 @@ process.stdout.on('error', (err) => {
 });
 
 import { Command } from 'commander';
-import { WelcomeCommand } from './commands/WelcomeCommand';
-import { ListCommand, parseMinSize } from './commands/ListCommand';
-import { DetailCommand } from './commands/DetailCommand';
-import { CleanCommand } from './commands/CleanCommand';
-import { WatchCommand } from './commands/WatchCommand';
-import { Colors } from './renderers/Colors';
-import pkg from '../package.json';
+import { WelcomeCommand } from './commands/WelcomeCommand.js';
+import { ListCommand, parseMinSize } from './commands/ListCommand.js';
+import { DetailCommand } from './commands/DetailCommand.js';
+import { CleanCommand } from './commands/CleanCommand.js';
+import { WatchCommand } from './commands/WatchCommand.js';
+import { Colors } from './renderers/Colors.js';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pkg = require('../package.json');
 
 const program = new Command();
 
@@ -67,6 +69,14 @@ program
   .description('Real-time monitor — refreshes every 5s (Ctrl+C to exit)')
   .action(() => {
     new WatchCommand().execute().catch(handleError);
+  });
+
+// ─── disky tui ───────────────────────────────────────────────────────
+program
+  .command('tui')
+  .description('Launch the interactive terminal UI')
+  .action(() => {
+    import('./tui/App.js').then(({ launchTUI }) => launchTUI().catch(handleError)).catch(handleError);
   });
 
 // ─── disky clean [id|path] ────────────────────────────────────────────────

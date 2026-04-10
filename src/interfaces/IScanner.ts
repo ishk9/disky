@@ -1,4 +1,4 @@
-import { DiskEntry } from '../types';
+import { DiskEntry } from '../types/index.js';
 
 export interface IScanner {
   /**

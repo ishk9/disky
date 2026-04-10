@@ -1,7 +1,7 @@
-import { DiskEntry } from '../types';
-import { Colors } from './Colors';
-import { IRenderer } from '../interfaces/IRenderer';
-import { formatBytes } from '../core/DiskScanner';
+import { DiskEntry } from '../types/index.js';
+import { Colors } from './Colors.js';
+import { IRenderer } from '../interfaces/IRenderer.js';
+import { formatBytes } from '../core/DiskScanner.js';
 
 export interface RemovalResult {
   id: number;

@@ -1,8 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { CachedEntry, DiskEntry } from '../types';
-import { Colors } from '../renderers/Colors';
+import { CachedEntry, DiskEntry } from '../types/index.js';
+import { Colors } from '../renderers/Colors.js';
 
 /**
  * Persists the last scan result to ~/.disky/last-scan.json so that

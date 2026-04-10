@@ -1,6 +1,6 @@
-import { DiskEntry, AGE_WARN_MS, AGE_STALE_MS } from '../types';
-import { Colors } from './Colors';
-import { IRenderer } from '../interfaces/IRenderer';
+import { DiskEntry, AGE_WARN_MS, AGE_STALE_MS } from '../types/index.js';
+import { Colors } from './Colors.js';
+import { IRenderer } from '../interfaces/IRenderer.js';
 
 interface TableOptions {
   /** IDs of newly appeared entries (highlighted green in watch mode). */

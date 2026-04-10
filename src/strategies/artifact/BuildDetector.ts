@@ -1,5 +1,5 @@
-import { IArtifactDetector } from '../../interfaces/IArtifactDetector';
-import { ArtifactTypeInfo } from '../../types';
+import { IArtifactDetector } from '../../interfaces/IArtifactDetector.js';
+import { ArtifactTypeInfo } from '../../types/index.js';
 
 export class BuildDetector implements IArtifactDetector {
   readonly detectorName = 'BuildDetector';

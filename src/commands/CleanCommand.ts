@@ -1,14 +1,14 @@
 import { execSync, execFileSync } from 'child_process';
-import { ICommand } from '../interfaces/ICommand';
-import { IScanner } from '../interfaces/IScanner';
-import { DiskScanner, formatBytes } from '../core/DiskScanner';
-import { ScanCache } from '../core/ScanCache';
-import { Config } from '../core/Config';
-import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver';
-import { TableRenderer } from '../renderers/TableRenderer';
-import { CleanRenderer, RemovalResult } from '../renderers/CleanRenderer';
-import { Colors } from '../renderers/Colors';
-import { DiskEntry } from '../types';
+import { ICommand } from '../interfaces/ICommand.js';
+import { IScanner } from '../interfaces/IScanner.js';
+import { DiskScanner, formatBytes } from '../core/DiskScanner.js';
+import { ScanCache } from '../core/ScanCache.js';
+import { Config } from '../core/Config.js';
+import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver.js';
+import { TableRenderer } from '../renderers/TableRenderer.js';
+import { CleanRenderer, RemovalResult } from '../renderers/CleanRenderer.js';
+import { Colors } from '../renderers/Colors.js';
+import { DiskEntry } from '../types/index.js';
 
 interface CleanCommandOptions {
   /** Numeric ID of a single entry to remove. Takes priority over targetPath. */
