@@ -12,6 +12,9 @@ import { ListCommand, parseMinSize } from './commands/ListCommand.js';
 import { DetailCommand } from './commands/DetailCommand.js';
 import { CleanCommand } from './commands/CleanCommand.js';
 import { WatchCommand } from './commands/WatchCommand.js';
+import { SweepCommand } from './commands/SweepCommand.js';
+import { InstallerCommand } from './commands/InstallerCommand.js';
+import { AnalyzeCommand } from './commands/AnalyzeCommand.js';
 import { Colors } from './renderers/Colors.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -105,6 +108,54 @@ program
         excludePaths: cmdOpts?.exclude,
         force: cmdOpts?.force,
       })
+        .execute()
+        .catch(handleError);
+    },
+  );
+
+// ─── disky sweep ──────────────────────────────────────────────────────────
+program
+  .command('sweep')
+  .description('Reclaim space from system/app caches, logs, and trash')
+  .option('--dry-run', 'Preview what would be freed without removing anything')
+  .option('--json', 'Output results as JSON (auto-enabled when piped)')
+  .option('--exclude <paths...>', 'Paths to skip (repeatable)')
+  .action((opts: { dryRun?: boolean; json?: boolean; exclude?: string[] }) => {
+    new SweepCommand({ dryRun: opts.dryRun, json: opts.json, excludePaths: opts.exclude })
+      .execute()
+      .catch(handleError);
+  });
+
+// ─── disky installer ──────────────────────────────────────────────────────
+program
+  .command('installer')
+  .description('Find and remove installer files (.dmg/.pkg/.iso) in Downloads/Desktop')
+  .option('--dry-run', 'Preview what would be removed without deleting anything')
+  .option('--json', 'Output results as JSON (auto-enabled when piped)')
+  .option('--exclude <paths...>', 'Paths to skip (repeatable)')
+  .action((opts: { dryRun?: boolean; json?: boolean; exclude?: string[] }) => {
+    new InstallerCommand({ dryRun: opts.dryRun, json: opts.json, excludePaths: opts.exclude })
+      .execute()
+      .catch(handleError);
+  });
+
+// ─── disky analyze [path] ─────────────────────────────────────────────────
+program
+  .command('analyze [path]')
+  .description('Disk usage overview and largest-file finder (read-only)')
+  .option('--min <size>', 'Minimum file size to list (e.g. 100MB, 1GB)')
+  .option('--top <n>', 'Limit to the top N files', parseInt)
+  .option('--json', 'Output results as JSON (auto-enabled when piped)')
+  .action(
+    (targetPath: string | undefined, opts: { min?: string; top?: number; json?: boolean }) => {
+      const minBytes = opts.min ? parseMinSize(opts.min) : undefined;
+      if (opts.min && (isNaN(minBytes!) || minBytes! <= 0)) {
+        console.error(
+          `\n  ${Colors.error(`Invalid size "${opts.min}". Use formats like 100MB, 1.5GB.\n`)}`,
+        );
+        process.exit(1);
+      }
+      new AnalyzeCommand({ targetPath, minBytes, top: opts.top, json: opts.json })
         .execute()
         .catch(handleError);
     },

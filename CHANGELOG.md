@@ -8,6 +8,16 @@ All notable changes to disky are documented here. Format follows
 
 ### Added
 
+- `disky sweep` — reclaim space from system/app caches, logs, and trash
+  (mole `clean` parity), with dry-run, exclusions, and audit logging.
+- `disky installer` — find and remove installer files (.dmg/.pkg/.iso) in
+  Downloads/Desktop/Homebrew cache.
+- `disky analyze [path]` — read-only disk-usage overview (whole-volume capacity
+  bar) plus the largest files under a path, tagged with insights.
+- Live scan progress (CLI spinner + TUI), auto-JSON when piped, an operation
+  audit log (`~/.disky/operations.log`), and an insight engine.
+- SOLID foundation: macOS platform-services layer, scan-provider model +
+  orchestrator, cleaner-strategy model + shared CleanService.
 - Clean safety policy with protected-path guarding (`auto`/`inspect`/`locked`
   classification with human-readable reasons).
 - Engineering foundation: committed test suite, GitHub Actions CI (typecheck, lint,

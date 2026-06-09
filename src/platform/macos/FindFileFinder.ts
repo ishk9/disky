@@ -1,4 +1,5 @@
 import { execSync, spawnSync } from 'child_process';
+import * as fs from 'fs';
 import { IFileFinder, FindDirsOptions, LargeDirsOptions } from '../IFileFinder.js';
 
 /**
@@ -77,5 +78,27 @@ export class FindFileFinder implements IFileFinder {
       // du unavailable
     }
     return results;
+  }
+
+  largeFiles(root: string, opts: LargeDirsOptions): Array<[string, number]> {
+    const minKB = Math.max(1, Math.floor(opts.minBytes / 1024));
+    const result = spawnSync(
+      'find',
+      [root, '-maxdepth', String(opts.maxDepth), '-type', 'f', '-size', `+${minKB}k`],
+      { encoding: 'utf8', maxBuffer: 10 * 1024 * 1024 },
+    );
+    if (result.status !== 0 && !result.stdout) return [];
+
+    const files: Array<[string, number]> = [];
+    for (const line of (result.stdout ?? '').split('\n')) {
+      const p = line.trim();
+      if (!p) continue;
+      try {
+        files.push([p, fs.statSync(p).size]);
+      } catch {
+        // file vanished between find and stat
+      }
+    }
+    return files.sort((a, b) => b[1] - a[1]);
   }
 }

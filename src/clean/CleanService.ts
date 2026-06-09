@@ -3,6 +3,7 @@ import { IOperationLog, OperationLog } from '../core/OperationLog.js';
 import { ICleaner, CleanOptions, RemovalResult, removalFailure } from './ICleaner.js';
 import { FilesystemCleaner } from './FilesystemCleaner.js';
 import { DockerCleaner } from './DockerCleaner.js';
+import { TrashCleaner } from './TrashCleaner.js';
 
 /**
  * Single entry point for all removals. Dispatches each entry to the first
@@ -15,7 +16,9 @@ export class CleanService {
   private readonly oplog: IOperationLog;
 
   constructor(cleaners?: ICleaner[], oplog: IOperationLog = new OperationLog()) {
-    this.cleaners = cleaners ?? [new FilesystemCleaner(), new DockerCleaner()];
+    // TrashCleaner before FilesystemCleaner: both could match a trash entry, but
+    // trash must be emptied (contents removed), not rm -rf'd as a directory.
+    this.cleaners = cleaners ?? [new TrashCleaner(), new FilesystemCleaner(), new DockerCleaner()];
     this.oplog = oplog;
   }
 

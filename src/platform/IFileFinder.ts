@@ -22,4 +22,7 @@ export interface IFileFinder {
 
   /** All directories under `root` at/above `minBytes`, as `[path, sizeBytes]`. */
   largeDirs(root: string, opts: LargeDirsOptions): Array<[string, number]>;
+
+  /** Individual files under `root` at/above `minBytes`, sorted largest-first. */
+  largeFiles(root: string, opts: LargeDirsOptions): Array<[string, number]>;
 }
