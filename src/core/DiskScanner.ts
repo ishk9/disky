@@ -163,6 +163,7 @@ export class DiskScanner implements IScanner {
 
     return {
       id,
+      category: mode === 'all' ? 'large-file' : 'artifact',
       sizeBytes,
       sizeHuman: formatBytes(sizeBytes),
       artifactType,
@@ -192,6 +193,7 @@ export class DiskScanner implements IScanner {
 
     return {
       id,
+      category: 'docker',
       sizeBytes: stats.reclaimableBytes,
       sizeHuman: formatBytes(stats.reclaimableBytes),
       artifactType: dockerArtifact,

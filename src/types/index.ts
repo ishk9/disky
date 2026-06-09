@@ -8,6 +8,31 @@ export type ArtifactColorKey = 'green' | 'cyan' | 'blue' | 'yellow' | 'gray' | '
 export type CleanPolicy = 'auto' | 'locked' | 'inspect';
 
 /**
+ * High-level category of a disk entry, set by the scan provider that produced
+ * it. Lets the orchestrator, renderers, and TUI stay category-agnostic.
+ */
+export type EntryCategory =
+  | 'artifact'
+  | 'system-cache'
+  | 'browser-cache'
+  | 'app-cache'
+  | 'log'
+  | 'trash'
+  | 'installer'
+  | 'large-file'
+  | 'docker';
+
+/** A short, human-meaningful tag computed from an entry (e.g. "stale 90d+"). */
+export interface Insight {
+  /** Stable key for styling/testing, e.g. "stale", "rebuildable". */
+  key: string;
+  /** Display label, e.g. "stale 90d+". */
+  label: string;
+  /** Severity for coloring: info (neutral), good (safe to clean), warn. */
+  tone: 'info' | 'good' | 'warn';
+}
+
+/**
  * Metadata about an artifact type (e.g. node_modules, .next, Docker).
  * Produced by IArtifactDetector implementations.
  */
@@ -41,6 +66,8 @@ export interface TopOffender {
 export interface DiskEntry {
   /** Sequential 1-indexed ID assigned at scan time. */
   id: number;
+  /** Category of this entry, set by the producing scan provider. */
+  category: EntryCategory;
   sizeBytes: number;
   sizeHuman: string;
   artifactType: ArtifactTypeInfo;
