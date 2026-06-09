@@ -1,15 +1,9 @@
 import { useState, useCallback } from 'react';
-import { execFileSync, execSync } from 'child_process';
 import { DiskEntry } from '../../types/index.js';
-import { canForceClean, isAutoCleanable } from '../../core/CleanPolicy.js';
+import { CleanService } from '../../clean/CleanService.js';
+import type { RemovalResult } from '../../clean/ICleaner.js';
 
-export interface RemovalResult {
-  id: number;
-  label: string;
-  displayPath: string;
-  bytesFreed: number;
-  success: boolean;
-}
+export type { RemovalResult };
 
 interface CleanState {
   cleaning: boolean;
@@ -25,38 +19,13 @@ export function useCleaner() {
   });
 
   const clean = useCallback(async (entries: DiskEntry[], options: { force?: boolean } = {}) => {
+    const service = new CleanService();
     setState({ cleaning: true, results: [], currentIndex: 0 });
 
     const results: RemovalResult[] = [];
     for (let i = 0; i < entries.length; i++) {
       setState((s) => ({ ...s, currentIndex: i }));
-      const entry = entries[i];
-
-      try {
-        if (entry.isDockerEntry) {
-          execSync('docker system prune -f 2>/dev/null', { stdio: 'pipe' });
-        } else if (!isAutoCleanable(entry) && !(options.force && canForceClean(entry))) {
-          throw new Error('locked path');
-        } else {
-          execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
-        }
-        results.push({
-          id: entry.id,
-          label: entry.artifactType.label,
-          displayPath: entry.displayPath,
-          bytesFreed: entry.sizeBytes,
-          success: true,
-        });
-      } catch {
-        results.push({
-          id: entry.id,
-          label: entry.artifactType.label,
-          displayPath: entry.displayPath,
-          bytesFreed: 0,
-          success: false,
-        });
-      }
-
+      results.push(service.clean(entries[i], { force: options.force }));
       setState((s) => ({ ...s, results: [...results] }));
     }
 

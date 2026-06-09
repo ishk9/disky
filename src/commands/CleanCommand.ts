@@ -1,4 +1,3 @@
-import { execSync, execFileSync } from 'child_process';
 import { ICommand } from '../interfaces/ICommand.js';
 import { IScanner } from '../interfaces/IScanner.js';
 import { DiskScanner, formatBytes } from '../core/DiskScanner.js';
@@ -10,7 +9,8 @@ import {
   isExcluded,
   getEffectiveExclusions,
 } from '../core/EntryResolver.js';
-import { canForceClean, getCleanPolicy, isAutoCleanable } from '../core/CleanPolicy.js';
+import { getCleanPolicy, isAutoCleanable } from '../core/CleanPolicy.js';
+import { CleanService } from '../clean/CleanService.js';
 import { TableRenderer } from '../renderers/TableRenderer.js';
 import { CleanRenderer, RemovalResult } from '../renderers/CleanRenderer.js';
 import { Colors } from '../renderers/Colors.js';
@@ -38,16 +38,19 @@ export class CleanCommand implements ICommand {
   private readonly config: Config;
   private readonly cleanRenderer: CleanRenderer;
   private readonly tableRenderer: TableRenderer;
+  private readonly cleanService: CleanService;
 
   constructor(
     private readonly options: CleanCommandOptions = {},
     scanner?: IScanner,
+    cleanService?: CleanService,
   ) {
     this.scanner = scanner ?? new DiskScanner();
     this.cache = new ScanCache();
     this.config = new Config();
     this.cleanRenderer = new CleanRenderer();
     this.tableRenderer = new TableRenderer();
+    this.cleanService = cleanService ?? new CleanService();
   }
 
   async execute(): Promise<void> {
@@ -221,27 +224,11 @@ export class CleanCommand implements ICommand {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   /**
-   * Removes an entry from disk (or prunes Docker resources) and returns the result.
-   * Returns null on failure.
+   * Removes an entry via the shared CleanService (which records the operation to
+   * the audit log). Returns the result on success, or null on failure.
    */
   private remove(entry: DiskEntry, options: { force?: boolean } = {}): RemovalResult | null {
-    try {
-      if (entry.isDockerEntry) {
-        execSync('docker system prune -f 2>/dev/null', { stdio: 'pipe' });
-      } else if (!isAutoCleanable(entry) && !(options.force && canForceClean(entry))) {
-        return null;
-      } else {
-        execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
-      }
-
-      return {
-        id: entry.id,
-        label: entry.artifactType.label,
-        displayPath: entry.displayPath,
-        bytesFreed: entry.sizeBytes,
-      };
-    } catch {
-      return null;
-    }
+    const result = this.cleanService.clean(entry, options);
+    return result.success ? result : null;
   }
 }
