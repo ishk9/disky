@@ -18,7 +18,10 @@ const DU_CONCURRENCY = 8;
  * processes in parallel so the OS can pipeline disk I/O.
  */
 export class DuDirSizer implements IDirSizer {
-  async sizes(paths: string[]): Promise<Map<string, number>> {
+  async sizes(
+    paths: string[],
+    onSized?: (path: string, bytes: number) => void,
+  ): Promise<Map<string, number>> {
     const sizes = new Map<string, number>();
     if (paths.length === 0) return sizes;
 
@@ -28,16 +31,19 @@ export class DuDirSizer implements IDirSizer {
         const idx = cursor++;
         if (idx >= paths.length) return;
         const p = paths[idx];
+        let bytes = 0;
         try {
           const { stdout } = await execFileAsync('du', ['-sk', p], {
             encoding: 'utf8',
             maxBuffer: 4 * 1024 * 1024,
           });
           const kb = parseInt(stdout.split('\t')[0] ?? '0', 10);
-          if (!isNaN(kb)) sizes.set(p, kb * 1024);
+          if (!isNaN(kb)) bytes = kb * 1024;
         } catch {
-          sizes.set(p, 0);
+          bytes = 0;
         }
+        sizes.set(p, bytes);
+        onSized?.(p, bytes);
       }
     });
     await Promise.all(workers);

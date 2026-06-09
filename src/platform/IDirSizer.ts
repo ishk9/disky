@@ -12,9 +12,13 @@ export interface ChildSize {
 export interface IDirSizer {
   /**
    * Total size in bytes for each path, computed concurrently. Paths that error
-   * or do not exist resolve to 0.
+   * or do not exist resolve to 0. `onSized` (if given) is invoked once per path
+   * as it completes, for progress reporting.
    */
-  sizes(paths: string[]): Promise<Map<string, number>>;
+  sizes(
+    paths: string[],
+    onSized?: (path: string, bytes: number) => void,
+  ): Promise<Map<string, number>>;
 
   /** Immediate children of `dir` with their sizes (for top-offender breakdowns). */
   childSizes(dir: string): Promise<ChildSize[]>;
