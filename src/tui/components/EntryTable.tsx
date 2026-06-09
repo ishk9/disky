@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Text } from 'ink';
 import { DiskEntry, AGE_WARN_MS, AGE_STALE_MS } from '../../types/index.js';
 import { theme } from '../theme.js';
+import { getCleanPolicy } from '../../core/CleanPolicy.js';
 
 interface EntryTableProps {
   entries: DiskEntry[];
@@ -64,9 +65,7 @@ export function EntryTable({ entries, cursorIndex, viewportHeight = 20, newIds, 
             </Text>
             <Text color={isNew ? 'green' : 'gray'}>{String(entry.id).padEnd(6)}</Text>
             <Text color={isNew ? 'green' : 'yellow'}>{entry.sizeHuman.padEnd(10)}</Text>
-            <Text color={isNew ? 'green' : (theme.artifact as any)[entry.artifactType.color] ?? 'white'}>
-              {entry.artifactType.label.padEnd(18)}
-            </Text>
+            <TypeCell entry={entry} isNew={isNew} />
             <Text color={isNew ? 'green' : 'white'}>{truncate(entry.displayPath, 35).padEnd(35)}</Text>
             <Text color={isNew ? 'green' : (entry.project ? 'magenta' : 'gray')}>
               {(entry.project ?? '\u2013').padEnd(18)}
@@ -87,6 +86,26 @@ export function EntryTable({ entries, cursorIndex, viewportHeight = 20, newIds, 
         </Box>
       )}
     </Box>
+  );
+}
+
+function TypeCell({ entry, isNew }: { entry: DiskEntry; isNew?: boolean }) {
+  const policy = getCleanPolicy(entry.artifactType);
+  const suffix = policy === 'auto' ? '' : ` ${policy}`;
+  const fullLabel = `${entry.artifactType.label}${suffix}`;
+  const paddedSuffix = suffix ? suffix + ' '.repeat(Math.max(0, 18 - fullLabel.length)) : '';
+
+  if (isNew) {
+    return <Text color="green">{fullLabel.padEnd(18)}</Text>;
+  }
+
+  return (
+    <>
+      <Text color={(theme.artifact as any)[entry.artifactType.color] ?? 'white'}>
+        {entry.artifactType.label}
+      </Text>
+      <Text color="gray">{paddedSuffix || ' '.repeat(Math.max(0, 18 - entry.artifactType.label.length))}</Text>
+    </>
   );
 }
 

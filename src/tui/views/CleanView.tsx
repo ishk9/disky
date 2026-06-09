@@ -8,6 +8,7 @@ import { DiskEntry } from '../../types/index.js';
 import { formatBytes } from '../../core/DiskScanner.js';
 import { Config } from '../../core/Config.js';
 import { isExcluded, getEffectiveExclusions } from '../../core/EntryResolver.js';
+import { getCleanPolicy, isAutoCleanable } from '../../core/CleanPolicy.js';
 
 interface CleanViewProps {
   /** Pre-selected entry to clean (single-entry shortcut from detail/scan) */
@@ -41,18 +42,25 @@ export function CleanView({
   }, []);
 
   const safeEntries = useCallback((): DiskEntry[] => {
-    if (targetEntry) return [targetEntry];
+    if (targetEntry) {
+      return isAutoCleanable(targetEntry) && !isExcluded(targetEntry, exclusions)
+        ? [targetEntry]
+        : [];
+    }
     if (!scanData) return [];
     return scanData
-      .filter((e) => e.artifactType.safeToClean)
+      .filter(isAutoCleanable)
       .filter((e) => !isExcluded(e, exclusions));
   }, [scanData, targetEntry, exclusions]);
 
   const entries = safeEntries();
+  const sourceEntries = targetEntry ? [targetEntry] : scanData ?? [];
+  const lockedCount = sourceEntries.filter((e) => getCleanPolicy(e.artifactType) === 'locked').length;
+  const inspectCount = sourceEntries.filter((e) => getCleanPolicy(e.artifactType) === 'inspect').length;
 
   // Pre-select the target entry when one is provided
   useEffect(() => {
-    if (targetEntry) setSelected(new Set([targetEntry.id]));
+    if (targetEntry) setSelected(isAutoCleanable(targetEntry) ? new Set([targetEntry.id]) : new Set());
   }, [targetEntry]);
 
   useKeyBindings({
@@ -145,6 +153,15 @@ export function CleanView({
         <Box marginTop={1}><Text color="gray"> No cleanable entries found.</Text></Box>
       )}
 
+      {!loading && (lockedCount > 0 || inspectCount > 0) && !results.length && (
+        <Box marginTop={1}>
+          <Text color="gray">
+            {' '}Skipped {lockedCount + inspectCount} {lockedCount + inspectCount === 1 ? 'entry' : 'entries'}{' '}
+            {'\u00b7'} inspect from scan results
+          </Text>
+        </Box>
+      )}
+
       {!loading && selected.size > 0 && !results.length && (
         <Box marginTop={1}>
           <Text color="yellow">
@@ -161,6 +178,9 @@ export function CleanView({
           {selectedEntries.map((e) => (
             <Text key={e.id} color="gray">  Would delete {e.artifactType.label} at {e.displayPath} ({e.sizeHuman})</Text>
           ))}
+          {(lockedCount > 0 || inspectCount > 0) && (
+            <Text color="gray">  Skipped {lockedCount + inspectCount} locked or inspect-only {lockedCount + inspectCount === 1 ? 'entry' : 'entries'}.</Text>
+          )}
           <Text color="gray">  No files will be modified.</Text>
           <Text color="gray">  Press any key to close</Text>
         </Box>
@@ -208,7 +228,7 @@ export function CleanView({
       <StatusBar
         hints={results.length > 0
           ? ['Esc back']
-          : ['\u2191\u2193 navigate', 'Space toggle', 'a all', 'n none', 'Enter confirm', 'p preview', 'Esc back']
+          : ['\u2191\u2193 navigate', 'Space toggle', 'a all cleanable', 'n none', 'Enter confirm', 'p preview', 'Esc back']
         }
       />
     </Box>

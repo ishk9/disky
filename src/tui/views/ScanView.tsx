@@ -8,6 +8,7 @@ import { formatBytes } from '../../core/DiskScanner.js';
 import { parseMinSize } from '../../commands/ListCommand.js';
 import { ArtCanvas } from '../art/ArtCanvas.js';
 import { SortMode } from '../types.js';
+import { getCleanPolicy, isAutoCleanable } from '../../core/CleanPolicy.js';
 
 interface ScanViewProps {
   // Data supplied by parent (PanelLayout owns useScanner)
@@ -20,6 +21,7 @@ interface ScanViewProps {
   onCleanEntry: (entry: DiskEntry) => void;
   isActive: boolean;
   viewportHeight?: number;
+  viewportWidth?: number;
   // Sort / filter state lifted to parent so it persists across view switches
   allMode: boolean;
   onAllModeChange: (v: boolean) => void;
@@ -32,6 +34,7 @@ export function ScanView({
   onDetail, onCleanEntry,
   isActive,
   viewportHeight = 15,
+  viewportWidth = 60,
   allMode, onAllModeChange,
   sortMode, onSortModeChange,
 }: ScanViewProps) {
@@ -39,11 +42,7 @@ export function ScanView({
   const [filterInput, setFilterInput] = useState('');
   const [showFilter, setShowFilter] = useState(false);
   const [minBytes, setMinBytes] = useState<number | undefined>(undefined);
-
-  // Re-scan when allMode changes
-  useEffect(() => {
-    scan(!allMode);
-  }, [allMode]);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const entries = useCallback(() => {
     if (!data) return [];
@@ -59,6 +58,20 @@ export function ScanView({
 
   const sorted = entries();
   const totalBytes = sorted.reduce((s, e) => s + e.sizeBytes, 0);
+  const recoverableBytes = sorted.filter(isAutoCleanable).reduce((s, e) => s + e.sizeBytes, 0);
+  const selectedEntry = sorted[cursor];
+  const selectedPolicy = selectedEntry ? getCleanPolicy(selectedEntry.artifactType) : 'inspect';
+  const canCleanSelected = selectedPolicy === 'auto';
+  const spaceLabel = allMode ? 'shown' : 'recoverable';
+  const statusBytes = allMode ? totalBytes : recoverableBytes;
+  const loadingArtWidth = Math.max(40, viewportWidth);
+  const loadingArtHeight = Math.max(8, Math.min(24, Math.floor(viewportHeight * 0.65)));
+
+  useEffect(() => {
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 1800);
+    return () => clearTimeout(timer);
+  }, [notice]);
 
   useKeyBindings({
     onUp:   () => setCursor((c) => Math.max(0, c - 1)),
@@ -71,7 +84,7 @@ export function ScanView({
         setCursor(0);
         return;
       }
-      if (sorted.length > 0) onDetail(sorted[cursor], sorted);
+      if (selectedEntry) onDetail(selectedEntry, sorted);
     },
     onEscape: () => {
       if (showFilter) { setShowFilter(false); return; }
@@ -88,16 +101,25 @@ export function ScanView({
             sortMode === 'size' ? 'age' : sortMode === 'age' ? 'type' : 'size'
           );
           break;
-        case 'f':
-          onAllModeChange(!allMode);
+        case 'f': {
+          const next = !allMode;
+          onAllModeChange(next);
+          scan(!next);
           setCursor(0);
           break;
+        }
         case '/':
           setShowFilter(true);
           setFilterInput('');
           break;
         case 'c':
-          if (sorted.length > 0) onCleanEntry(sorted[cursor]);
+          if (selectedEntry && canCleanSelected) {
+            onCleanEntry(selectedEntry);
+          } else if (selectedEntry) {
+            setNotice(selectedPolicy === 'locked'
+              ? 'Locked. Open detail to inspect.'
+              : 'Inspect only. Open detail to review.');
+          }
           break;
         case 'r':
           scan(!allMode);
@@ -112,7 +134,7 @@ export function ScanView({
       {/* Controls bar */}
       <Box marginTop={1} gap={2}>
         <Text color="gray">Sort: <Text color="cyan" bold>{sortMode}</Text></Text>
-        <Text color="gray">Filter: <Text color="cyan" bold>{allMode ? 'all' : 'artifacts'}</Text></Text>
+        <Text color="gray">Scope: <Text color="cyan" bold>{allMode ? 'all large dirs' : 'artifacts'}</Text></Text>
         {minBytes && <Text color="gray">Min: <Text color="yellow">{formatBytes(minBytes)}</Text></Text>}
         {showFilter && (
           <Text color="yellow">Size: <Text color="white">{filterInput || '_'}</Text> <Text color="gray">(Enter apply, Esc cancel)</Text></Text>
@@ -120,13 +142,19 @@ export function ScanView({
       </Box>
 
       {loading && (
-        <Box flexDirection="column" marginTop={1}>
-          <ArtCanvas mode="scan" width={40} height={6} fps={8} color="cyan" />
+        <Box flexDirection="column" marginTop={1} width={viewportWidth} alignItems="center">
+          <ArtCanvas mode="scan" width={loadingArtWidth} height={loadingArtHeight} fps={8} color="cyan" />
           <Text color="cyan"> Scanning your filesystem{'\u2026'}</Text>
         </Box>
       )}
 
       {error && <Box marginTop={1}><Text color="red">Error: {error}</Text></Box>}
+
+      {notice && (
+        <Box marginTop={1}>
+          <Text color="gray"> {notice}</Text>
+        </Box>
+      )}
 
       {!loading && sorted.length > 0 && (
         <EntryTable
@@ -143,8 +171,16 @@ export function ScanView({
       )}
 
       <StatusBar
-        left={!loading && data ? `${sorted.length} entries \u00b7 ${formatBytes(totalBytes)} recoverable` : undefined}
-        hints={['\u2191\u2193 navigate', 'Enter detail', 'c clean', 's sort', 'f filter', '/ size', 'r rescan']}
+        left={!loading && data ? `${sorted.length} entries \u00b7 ${formatBytes(statusBytes)} ${spaceLabel}` : undefined}
+        hints={[
+          '\u2191\u2193 navigate',
+          canCleanSelected ? 'Enter detail' : 'Enter inspect',
+          ...(canCleanSelected ? ['c clean'] : []),
+          's sort',
+          'f scope',
+          '/ size',
+          'r rescan',
+        ]}
       />
     </Box>
   );

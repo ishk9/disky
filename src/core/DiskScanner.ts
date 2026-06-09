@@ -1,12 +1,19 @@
-import { execSync, execFileSync, spawnSync } from 'child_process';
+import { execSync, execFile, execFileSync, spawnSync } from 'child_process';
+import { promisify } from 'util';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
-import { IScanner } from '../interfaces/IScanner.js';
+import { IScanner, type ScanOptions } from '../interfaces/IScanner.js';
 import { DiskEntry, TopOffender, ArtifactTypeInfo } from '../types/index.js';
-import { ProjectDetector } from './ProjectDetector.js';
+import { ProjectDetector, type ProjectInfoCache } from './ProjectDetector.js';
 import { DockerScanner } from './DockerScanner.js';
 import { ArtifactDetectorRegistry } from '../strategies/artifact/ArtifactDetectorRegistry.js';
+import { classifyCleanPolicy } from './CleanPolicy.js';
+
+const execFileAsync = promisify(execFile);
+
+/** Max concurrent `du` processes; keep this modest to avoid I/O thrash. */
+const DU_CONCURRENCY = 8;
 
 /** Directories skipped when walking the filesystem to avoid infinite loops / system noise. */
 const SKIP_DIRS = new Set([
@@ -20,6 +27,8 @@ const SKIP_DIRS = new Set([
   'sys',
   'dev',
 ]);
+
+const ARTIFACT_FIND_PRUNE_NAMES = ['.git', 'System', 'Applications', 'Volumes', 'proc', 'sys'];
 
 /** Minimum directory size (bytes) to include in `--all` mode. */
 const ALL_MODE_THRESHOLD_BYTES = 50 * 1024 * 1024; // 50 MB
@@ -38,17 +47,33 @@ export class DiskScanner implements IScanner {
   private readonly dockerScanner = new DockerScanner();
   private readonly registry = ArtifactDetectorRegistry.getInstance();
 
-  async scan(artifactOnly: boolean): Promise<DiskEntry[]> {
+  async scan(artifactOnly: boolean, options: ScanOptions = {}): Promise<DiskEntry[]> {
     const entries: DiskEntry[] = [];
+    const projectInfoCache: ProjectInfoCache = new Map();
+    const includeTopOffenders = options.includeTopOffenders ?? true;
     let idCounter = 1;
 
     if (artifactOnly) {
       const artifactPaths = this.findArtifactPaths();
+      const sizes = await this.parallelDirSizes(artifactPaths);
+
+      const offendersByPath = includeTopOffenders
+        ? await this.parallelTopOffenders(artifactPaths.filter((p) => (sizes.get(p) ?? 0) > 0))
+        : new Map<string, TopOffender[]>();
+
       for (const absPath of artifactPaths) {
-        const sizeBytes = this.getDirSizeBytes(absPath);
+        const sizeBytes = sizes.get(absPath) ?? 0;
         if (sizeBytes === 0) continue;
 
-        const entry = this.buildEntry(absPath, sizeBytes, idCounter++);
+        const entry = this.buildEntry(
+          absPath,
+          sizeBytes,
+          idCounter++,
+          includeTopOffenders ? offendersByPath.get(absPath) : [],
+          projectInfoCache,
+          undefined,
+          'artifact',
+        );
         if (entry) entries.push(entry);
       }
 
@@ -57,7 +82,15 @@ export class DiskScanner implements IScanner {
     } else {
       const largeDirs = this.findAllLargeDirs();
       for (const [absPath, sizeBytes] of largeDirs) {
-        const entry = this.buildEntry(absPath, sizeBytes, idCounter++);
+        const entry = this.buildEntry(
+          absPath,
+          sizeBytes,
+          idCounter++,
+          includeTopOffenders ? undefined : [],
+          projectInfoCache,
+          this.largeDirArtifact(),
+          'all',
+        );
         if (entry) entries.push(entry);
       }
     }
@@ -78,13 +111,32 @@ export class DiskScanner implements IScanner {
 
     const home = os.homedir();
 
-    // Build args array: find HOME -maxdepth N -type d ( -name A -o -name B ... ) -prune
-    const args: string[] = [home, '-maxdepth', String(ARTIFACT_SCAN_DEPTH), '-type', 'd', '('];
+    // Build args array:
+    // find HOME -maxdepth N ( expensive-prunes ) -prune -o -type d ( target names ) -print -prune
+    const args: string[] = [home, '-maxdepth', String(ARTIFACT_SCAN_DEPTH), '('];
+    const pruneNames = ARTIFACT_FIND_PRUNE_NAMES;
+    const prunePaths = [
+      path.join(home, 'Library', 'Application Support'),
+      path.join(home, 'Library', 'Containers'),
+      path.join(home, 'Library', 'Group Containers'),
+    ];
+
+    let hasPrune = false;
+    const pushPrune = (kind: '-name' | '-path', value: string) => {
+      if (hasPrune) args.push('-o');
+      args.push(kind, value);
+      hasPrune = true;
+    };
+
+    for (const name of pruneNames) pushPrune('-name', name);
+    for (const prunePath of prunePaths) pushPrune('-path', prunePath);
+
+    args.push(')', '-prune', '-o', '-type', 'd', '(');
     for (let i = 0; i < names.length; i++) {
       if (i > 0) args.push('-o');
       args.push('-name', names[i]);
     }
-    args.push(')', '-prune');
+    args.push(')', '-print', '-prune');
 
     const result = spawnSync('find', args, {
       encoding: 'utf8',
@@ -101,9 +153,12 @@ export class DiskScanner implements IScanner {
     // Check well-known global cache paths directly — their basenames (e.g. "cache",
     // "store") are too generic for the `find` filter, so we probe them explicitly.
     const globalCachePaths = [
+      path.join(home, '.gradle', 'caches'),
+      path.join(home, '.m2', 'repository'),
       path.join(home, '.bun', 'install', 'cache'),
       path.join(home, '.pnpm-store'),
       path.join(home, '.local', 'share', 'pnpm', 'store'),
+      path.join(home, 'Library', 'Developer', 'Xcode', 'DerivedData'),
     ];
     for (const p of globalCachePaths) {
       if (fs.existsSync(p) && !paths.includes(p)) {
@@ -153,11 +208,20 @@ export class DiskScanner implements IScanner {
 
   // ─── Entry construction ──────────────────────────────────────────────────
 
-  private buildEntry(absPath: string, sizeBytes: number, id: number): DiskEntry | null {
+  private buildEntry(
+    absPath: string,
+    sizeBytes: number,
+    id: number,
+    topOffenders?: TopOffender[],
+    projectInfoCache?: ProjectInfoCache,
+    fallbackArtifact?: ArtifactTypeInfo,
+    mode: 'artifact' | 'all' = 'artifact',
+  ): DiskEntry | null {
     const dirName = path.basename(absPath);
-    const artifactType = this.registry.resolve(dirName, absPath) ?? this.unknownArtifact();
 
-    const projectInfo = this.projectDetector.resolve(path.dirname(absPath));
+    const projectInfo = this.projectDetector.resolve(path.dirname(absPath), projectInfoCache);
+    const detectedArtifact = this.registry.resolve(dirName, absPath) ?? fallbackArtifact ?? this.unknownArtifact();
+    const artifactType = classifyCleanPolicy(detectedArtifact, absPath, projectInfo.directory, mode);
     const ageMs = this.getAgeMs(absPath);
 
     return {
@@ -174,7 +238,7 @@ export class DiskScanner implements IScanner {
       ageHuman: formatAge(ageMs),
       isDockerEntry: false,
       dockerSummary: null,
-      topOffenders: this.getTopOffenders(absPath),
+      topOffenders: topOffenders ?? this.getTopOffenders(absPath),
     };
   }
 
@@ -186,6 +250,7 @@ export class DiskScanner implements IScanner {
       label: 'Docker',
       color: 'blue',
       safeToClean: true,
+      cleanPolicy: 'auto',
     };
 
     return {
@@ -208,18 +273,41 @@ export class DiskScanner implements IScanner {
 
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
-  /** Returns size of a directory in bytes using `du -sk`. */
-  private getDirSizeBytes(dirPath: string): number {
-    try {
-      const raw = execFileSync('du', ['-sk', dirPath], {
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
-      const kb = parseInt(raw.split('\t')[0] ?? '0', 10);
-      return kb * 1024;
-    } catch {
-      return 0;
-    }
+  /**
+   * Sizes many directories by running multiple `du -sk` processes concurrently.
+   *
+   * Empirically: a single `du -sk path1 path2 ...` and N sequential `du -sk path`
+   * calls finish in roughly the same wall clock on macOS — `du` itself is the
+   * bottleneck, not process spawn overhead. The real win comes from running
+   * several `du` processes in parallel so the OS can pipeline disk I/O.
+   *
+   * Concurrency is capped at DU_CONCURRENCY to avoid fork-bombing the OS.
+   */
+  private async parallelDirSizes(paths: string[]): Promise<Map<string, number>> {
+    const sizes = new Map<string, number>();
+    if (paths.length === 0) return sizes;
+
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(DU_CONCURRENCY, paths.length) }, async () => {
+      while (true) {
+        const idx = cursor++;
+        if (idx >= paths.length) return;
+        const p = paths[idx];
+        try {
+          const { stdout } = await execFileAsync('du', ['-sk', p], {
+            encoding: 'utf8',
+            maxBuffer: 4 * 1024 * 1024,
+          });
+          const kb = parseInt(stdout.split('\t')[0] ?? '0', 10);
+          if (!isNaN(kb)) sizes.set(p, kb * 1024);
+        } catch {
+          sizes.set(p, 0);
+        }
+      }
+    });
+    await Promise.all(workers);
+
+    return sizes;
   }
 
   /** Returns mtime age in milliseconds, or 0 on error. */
@@ -233,9 +321,45 @@ export class DiskScanner implements IScanner {
   }
 
   /**
-   * Finds the largest immediate subdirectories or files within an artifact directory.
-   * Skipped for Docker entries.
+   * Computes top offenders for many artifact directories concurrently.
+   * This is skipped for table/list scans and reserved for detail data.
    */
+  private async parallelTopOffenders(dirs: string[]): Promise<Map<string, TopOffender[]>> {
+    const out = new Map<string, TopOffender[]>();
+    if (dirs.length === 0) return out;
+
+    let cursor = 0;
+    const workers = Array.from({ length: Math.min(DU_CONCURRENCY, dirs.length) }, async () => {
+      while (true) {
+        const idx = cursor++;
+        if (idx >= dirs.length) return;
+        const dir = dirs[idx];
+        out.set(dir, await this.computeTopOffenders(dir));
+      }
+    });
+    await Promise.all(workers);
+
+    return out;
+  }
+
+  private async computeTopOffenders(dirPath: string): Promise<TopOffender[]> {
+    try {
+      const children = fs.readdirSync(dirPath).map((name) => path.join(dirPath, name));
+      if (children.length === 0) return [];
+
+      const { stdout } = await execFileAsync(
+        'du',
+        ['-sk', ...children],
+        { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 },
+      );
+
+      return this.parseTopOffenders(stdout);
+    } catch (err) {
+      return this.parseTopOffenders(stdoutFromExecError(err));
+    }
+  }
+
+  /** Synchronous shim retained for callers that build entries one at a time. */
   private getTopOffenders(dirPath: string): TopOffender[] {
     try {
       const children = fs.readdirSync(dirPath).map((name) => path.join(dirPath, name));
@@ -246,35 +370,61 @@ export class DiskScanner implements IScanner {
         stdio: ['pipe', 'pipe', 'pipe'],
       });
 
-      const offenders: TopOffender[] = [];
-
-      for (const line of raw.split('\n')) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        const tab = trimmed.indexOf('\t');
-        if (tab === -1) continue;
-
-        const kb = parseInt(trimmed.slice(0, tab), 10);
-        const fullPath = trimmed.slice(tab + 1);
-        const sizeBytes = kb * 1024;
-
-        offenders.push({
-          name: path.basename(fullPath),
-          sizeBytes,
-          sizeHuman: formatBytes(sizeBytes),
-        });
-      }
-
-      offenders.sort((a, b) => b.sizeBytes - a.sizeBytes);
-      return offenders.slice(0, TOP_OFFENDERS_LIMIT);
-    } catch {
-      return [];
+      return this.parseTopOffenders(raw);
+    } catch (err) {
+      return this.parseTopOffenders(stdoutFromExecError(err));
     }
   }
 
-  private unknownArtifact(): ArtifactTypeInfo {
-    return { label: 'unknown', color: 'gray', safeToClean: false };
+  private parseTopOffenders(raw: string): TopOffender[] {
+    const offenders: TopOffender[] = [];
+    for (const line of raw.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
+      const tab = trimmed.indexOf('\t');
+      if (tab === -1) continue;
+
+      const kb = parseInt(trimmed.slice(0, tab), 10);
+      const fullPath = trimmed.slice(tab + 1);
+      const sizeBytes = kb * 1024;
+
+      offenders.push({
+        name: path.basename(fullPath),
+        sizeBytes,
+        sizeHuman: formatBytes(sizeBytes),
+      });
+    }
+
+    offenders.sort((a, b) => b.sizeBytes - a.sizeBytes);
+    return offenders.slice(0, TOP_OFFENDERS_LIMIT);
   }
+
+  private unknownArtifact(): ArtifactTypeInfo {
+    return {
+      label: 'unknown',
+      color: 'gray',
+      safeToClean: false,
+      cleanPolicy: 'inspect',
+      cleanReason: 'disky does not recognize this as a safe cleanup artifact.',
+    };
+  }
+
+  private largeDirArtifact(): ArtifactTypeInfo {
+    return {
+      label: 'large dir',
+      color: 'gray',
+      safeToClean: false,
+      cleanPolicy: 'inspect',
+      cleanReason: 'All-mode entries are broad directories for inspection.',
+    };
+  }
+}
+
+function stdoutFromExecError(err: unknown): string {
+  const stdout = (err as { stdout?: unknown }).stdout;
+  if (typeof stdout === 'string') return stdout;
+  if (Buffer.isBuffer(stdout)) return stdout.toString('utf8');
+  return '';
 }
 
 // ─── Pure formatting utilities ────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { execFileSync, execSync } from 'child_process';
 import { DiskEntry } from '../../types/index.js';
+import { canForceClean, isAutoCleanable } from '../../core/CleanPolicy.js';
 
 export interface RemovalResult {
   id: number;
@@ -23,7 +24,7 @@ export function useCleaner() {
     currentIndex: -1,
   });
 
-  const clean = useCallback(async (entries: DiskEntry[]) => {
+  const clean = useCallback(async (entries: DiskEntry[], options: { force?: boolean } = {}) => {
     setState({ cleaning: true, results: [], currentIndex: 0 });
 
     const results: RemovalResult[] = [];
@@ -34,6 +35,8 @@ export function useCleaner() {
       try {
         if (entry.isDockerEntry) {
           execSync('docker system prune -f 2>/dev/null', { stdio: 'pipe' });
+        } else if (!isAutoCleanable(entry) && !(options.force && canForceClean(entry))) {
+          throw new Error('locked path');
         } else {
           execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
         }

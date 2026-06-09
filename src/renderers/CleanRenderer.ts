@@ -16,7 +16,7 @@ export interface RemovalResult {
 export class CleanRenderer implements IRenderer<DiskEntry[]> {
   render(entries: DiskEntry[]): string {
     if (entries.length === 0) {
-      return `\n  ${Colors.success('✓')} ${Colors.dim('No disk hogs found.')}\n`;
+      return `\n  ${Colors.success('✓')} ${Colors.dim('No cleanable entries found.')}\n`;
     }
 
     const totalBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
@@ -46,7 +46,7 @@ export class CleanRenderer implements IRenderer<DiskEntry[]> {
       '',
       `  ${Colors.dim('Scanning for disk hogs...')}`,
       '',
-      `  ${Colors.error(`Found ${entries.length} removable director${entries.length !== 1 ? 'ies' : 'y'}:`)}`,
+      `  ${Colors.prompt(`Found ${entries.length} removable director${entries.length !== 1 ? 'ies' : 'y'}:`)}`,
       '',
       `  ${headerRow}`,
       ...rows.map((r) => `  ${r}`),

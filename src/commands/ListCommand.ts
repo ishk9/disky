@@ -6,6 +6,7 @@ import { ScanCache } from '../core/ScanCache.js';
 import { HeaderRenderer } from '../renderers/HeaderRenderer.js';
 import { TableRenderer } from '../renderers/TableRenderer.js';
 import { Colors } from '../renderers/Colors.js';
+import { getCleanPolicy, isAutoCleanable } from '../core/CleanPolicy.js';
 
 interface ListCommandOptions {
   /** When false, show all large directories (--all mode). */
@@ -43,7 +44,9 @@ export class ListCommand implements ICommand {
   }
 
   async execute(): Promise<void> {
-    let entries = await this.scanner.scan(this.options.artifactOnly);
+    let entries = await this.scanner.scan(this.options.artifactOnly, {
+      includeTopOffenders: this.options.json === true,
+    });
 
     if (this.options.minBytes !== undefined && this.options.minBytes > 0) {
       entries = entries.filter((e) => e.sizeBytes >= this.options.minBytes!);
@@ -104,12 +107,22 @@ export class ListCommand implements ICommand {
   }
 
   private buildFooter(entries: DiskEntry[]): string {
-    const totalBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
-    const parts: string[] = [`${formatBytes(totalBytes)} recoverable`, 'Run disky <id> for details'];
+    const recoverableBytes = entries.filter(isAutoCleanable).reduce((sum, e) => sum + e.sizeBytes, 0);
+    const shownBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
+    const lockedCount = entries.filter((e) => getCleanPolicy(e.artifactType) === 'locked').length;
+    const inspectCount = entries.filter((e) => getCleanPolicy(e.artifactType) === 'inspect').length;
+    const parts: string[] = [
+      this.options.artifactOnly
+        ? `${formatBytes(recoverableBytes)} recoverable`
+        : `${formatBytes(shownBytes)} shown`,
+      'Run disky <id> for details',
+    ];
 
     if (this.options.artifactOnly) {
       parts.push('disky clean to free space');
     }
+    if (lockedCount > 0) parts.push(`${lockedCount} locked`);
+    if (inspectCount > 0) parts.push(`${inspectCount} inspect-only`);
 
     const sortMode = this.options.sortMode ?? 'size';
     if (sortMode !== 'size') {

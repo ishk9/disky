@@ -85,9 +85,10 @@ program
   .description('Remove disk hogs. Pass an ID or path to target a specific entry; omit for interactive bulk cleanup')
   .option('--dry-run', 'Preview what would be deleted without removing anything')
   .option('--exclude <paths...>', 'Paths to skip during cleanup (repeatable)')
-  .action((target?: string, cmdOpts?: { dryRun?: boolean; exclude?: string[] }) => {
+  .option('--force', 'Allow targeted removal of locked entries')
+  .action((target?: string, cmdOpts?: { dryRun?: boolean; exclude?: string[]; force?: boolean }) => {
     const opts = resolveTarget(target);
-    new CleanCommand({ ...opts, dryRun: cmdOpts?.dryRun, excludePaths: cmdOpts?.exclude }).execute().catch(handleError);
+    new CleanCommand({ ...opts, dryRun: cmdOpts?.dryRun, excludePaths: cmdOpts?.exclude, force: cmdOpts?.force }).execute().catch(handleError);
   });
 
 program.parse(process.argv);

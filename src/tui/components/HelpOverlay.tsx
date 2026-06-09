@@ -1,9 +1,12 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import { ViewName } from '../types.js';
+import { DiskEntry } from '../../types/index.js';
+import { getCleanPolicy } from '../../core/CleanPolicy.js';
 
 interface HelpOverlayProps {
   currentView: ViewName;
+  currentEntry?: DiskEntry;
 }
 
 const GLOBAL_KEYS = [
@@ -21,7 +24,7 @@ const VIEW_KEYS: Record<ViewName, string[][]> = {
   scan: [
     ['\u2191\u2193', 'Navigate entries'],
     ['Enter', 'View details'],
-    ['c', 'Clean selected entry'],
+    ['c', 'Clean selected auto entry'],
     ['s', 'Cycle sort mode'],
     ['f', 'Toggle all-mode filter'],
     ['/', 'Filter by size'],
@@ -33,7 +36,7 @@ const VIEW_KEYS: Record<ViewName, string[][]> = {
   clean: [
     ['\u2191\u2193', 'Navigate entries'],
     ['Space', 'Toggle selection'],
-    ['a', 'Select all'],
+    ['a', 'Select all cleanable'],
     ['n', 'Deselect all'],
     ['Enter', 'Confirm removal'],
     ['p', 'Preview (dry run)'],
@@ -43,8 +46,11 @@ const VIEW_KEYS: Record<ViewName, string[][]> = {
   ],
 };
 
-export function HelpOverlay({ currentView }: HelpOverlayProps) {
-  const viewKeys = VIEW_KEYS[currentView] || [];
+export function HelpOverlay({ currentView, currentEntry }: HelpOverlayProps) {
+  const viewKeys = [...(VIEW_KEYS[currentView] || [])];
+  if (currentView === 'detail' && currentEntry && getCleanPolicy(currentEntry.artifactType) === 'locked') {
+    viewKeys.push(['!', 'Force locked entry']);
+  }
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>

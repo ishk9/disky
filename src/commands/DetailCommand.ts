@@ -4,6 +4,7 @@ import { DiskScanner } from '../core/DiskScanner.js';
 import { ScanCache } from '../core/ScanCache.js';
 import { Config } from '../core/Config.js';
 import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver.js';
+import { getCleanPolicy } from '../core/CleanPolicy.js';
 import { DetailRenderer } from '../renderers/DetailRenderer.js';
 import { Colors } from '../renderers/Colors.js';
 import { DiskEntry } from '../types/index.js';
@@ -51,6 +52,16 @@ export class DetailCommand implements ICommand {
     if (!entry.isDockerEntry) {
       const label = entry.artifactType.label;
       const loc   = entry.project ?? entry.displayPath;
+      const policy = getCleanPolicy(entry.artifactType);
+
+      if (policy !== 'auto') {
+        console.log(`  ${Colors.dim(policy === 'locked' ? 'Locked entry.' : 'Inspect-only entry.')} ${entry.artifactType.cleanReason ?? 'Default clean skips this entry.'}`);
+        if (policy === 'locked') {
+          console.log(`  ${Colors.dim(`Use disky clean ${entry.id} --force if you really want to remove it.`)}`);
+        }
+        console.log('');
+        return;
+      }
 
       const exclusions = getEffectiveExclusions(this.config);
       const excluded = isExcluded(entry, exclusions);

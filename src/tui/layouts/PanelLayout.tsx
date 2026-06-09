@@ -16,6 +16,7 @@ import { CleanView } from '../views/CleanView.js';
 import { WatchView } from '../views/WatchView.js';
 import { StatusBar } from '../components/StatusBar.js';
 import { HelpOverlay } from '../components/HelpOverlay.js';
+import { isAutoCleanable } from '../../core/CleanPolicy.js';
 
 type MainContent = 'idle' | 'entries' | 'detail' | 'clean' | 'watch';
 
@@ -39,7 +40,7 @@ export function PanelLayout() {
   const [selectedEntry, setSelectedEntry] = useState<DiskEntry | undefined>();
   const [cleanTarget, setCleanTarget] = useState<DiskEntry | undefined>();
   const [showHelp, setShowHelp] = useState(false);
-  const [allMode, setAllMode] = useState(true);
+  const [allMode, setAllMode] = useState(false);
   const [sortMode, setSortMode] = useState<SortMode>('size');
   const [actionsCursor, setActionsCursor] = useState(0);
 
@@ -55,9 +56,10 @@ export function PanelLayout() {
 
   // Right panel: minus border (2) minus label row (1) minus statusbar (1)
   const mainViewportH = Math.max(5, usable - 4);
+  const mainViewportW = Math.max(40, columns - 4 - leftWidth - 4);
 
   const doScan = useCallback(() => {
-    scan(allMode);
+    scan(!allMode);
     setMainContent('entries');
     setActivePanel(0);
   }, [allMode, scan]);
@@ -143,13 +145,21 @@ export function PanelLayout() {
 
   const mainBorderColor = activePanel === 0 ? 'cyan' : 'gray';
   const totalBytes = data ? data.reduce((s, e) => s + e.sizeBytes, 0) : 0;
+  const recoverableBytes = data ? data.filter(isAutoCleanable).reduce((s, e) => s + e.sizeBytes, 0) : 0;
+  const spaceLabel = allMode ? 'shown' : 'recoverable';
+  const statusBytes = allMode ? totalBytes : recoverableBytes;
   const statusLeft = data
-    ? `${data.length} entries \u00b7 ${formatBytes(totalBytes)} recoverable`
+    ? `${data.length} entries \u00b7 ${formatBytes(statusBytes)} ${spaceLabel}`
     : loading ? 'scanning\u2026' : undefined;
+  const pauseDiskAnimation =
+    activePanel === 0 &&
+    mainContent === 'entries' &&
+    !loading &&
+    (data?.length ?? 0) > 0;
 
   return (
     <Box flexDirection="column" height={usable}>
-      {showHelp && <HelpOverlay currentView={mainContent === 'idle' ? 'dashboard' : mainContent as any} />}
+      {showHelp && <HelpOverlay currentView={mainContent === 'idle' ? 'dashboard' : mainContent as any} currentEntry={selectedEntry} />}
 
       <Box flexDirection="row" flexGrow={1}>
         {/* ── Left column ───────────────────────────────── */}
@@ -159,6 +169,8 @@ export function PanelLayout() {
             height={statusH}
             data={data}
             loading={loading}
+            spaceLabel={spaceLabel}
+            totalBytes={statusBytes}
           />
           <BreakdownPanel
             isActive={activePanel === 2}
@@ -169,6 +181,7 @@ export function PanelLayout() {
             isActive={activePanel === 3}
             height={diskH}
             width={leftWidth}
+            animate={!pauseDiskAnimation}
           />
           <ActionsPanel
             isActive={activePanel === 4}
@@ -219,6 +232,7 @@ export function PanelLayout() {
               onCleanEntry={handleCleanEntry}
               isActive={activePanel === 0}
               viewportHeight={mainViewportH - 6}
+              viewportWidth={mainViewportW}
               allMode={allMode}
               onAllModeChange={setAllMode}
               sortMode={sortMode}

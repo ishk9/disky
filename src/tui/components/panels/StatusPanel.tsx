@@ -9,13 +9,15 @@ interface StatusPanelProps {
   height: number;
   data: DiskEntry[] | null;
   loading: boolean;
+  spaceLabel?: string;
+  totalBytes?: number;
 }
 
 const LOGO_ROWS = generateBlockLogo('disky', 1, true); // 7 rows, compact single-char blocks (~28 cols wide)
 
-export function StatusPanel({ isActive, height, data, loading }: StatusPanelProps) {
+export function StatusPanel({ isActive, height, data, loading, spaceLabel = 'recoverable', totalBytes }: StatusPanelProps) {
   const color = isActive ? 'cyan' : 'gray';
-  const totalBytes = data ? data.reduce((s, e) => s + e.sizeBytes, 0) : 0;
+  const displayedBytes = totalBytes ?? (data ? data.reduce((s, e) => s + e.sizeBytes, 0) : 0);
 
   return (
     <Box flexDirection="column" borderStyle="single" borderColor={color} height={height} overflow="hidden">
@@ -28,7 +30,7 @@ export function StatusPanel({ isActive, height, data, loading }: StatusPanelProp
       {!loading && data && (
         <>
           <Text color="gray"> <Text color="white">{data.length}</Text> entries found</Text>
-          <Text color="gray"> <Text color="yellow">{formatBytes(totalBytes)}</Text> recoverable</Text>
+          <Text color="gray"> <Text color="yellow">{formatBytes(displayedBytes)}</Text> {spaceLabel}</Text>
         </>
       )}
       {!loading && !data && (

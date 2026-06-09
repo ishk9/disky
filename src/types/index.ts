@@ -12,6 +12,8 @@ export type ArtifactColorKey =
   | 'red'
   | 'magenta';
 
+export type CleanPolicy = 'auto' | 'locked' | 'inspect';
+
 /**
  * Metadata about an artifact type (e.g. node_modules, .next, Docker).
  * Produced by IArtifactDetector implementations.
@@ -23,6 +25,10 @@ export interface ArtifactTypeInfo {
   color: ArtifactColorKey;
   /** Whether this artifact is safe for automated removal via `disky clean`. */
   safeToClean: boolean;
+  /** Cleanup policy for this specific path. Scanner output always sets this. */
+  cleanPolicy?: CleanPolicy;
+  /** Short explanation shown when cleanup is locked or inspect-only. */
+  cleanReason?: string;
 }
 
 /**

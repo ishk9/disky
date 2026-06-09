@@ -1,6 +1,7 @@
 import { DiskEntry, AGE_WARN_MS, AGE_STALE_MS } from '../types/index.js';
 import { Colors } from './Colors.js';
 import { IRenderer } from '../interfaces/IRenderer.js';
+import { cleanPolicyLabel } from '../core/CleanPolicy.js';
 
 interface TableOptions {
   /** IDs of newly appeared entries (highlighted green in watch mode). */
@@ -60,7 +61,7 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
     for (const e of entries) {
       widths.id      = Math.max(widths.id,      String(e.id).length + 2);
       widths.size    = Math.max(widths.size,    e.sizeHuman.length + 2);
-      widths.type    = Math.max(widths.type,    e.artifactType.label.length + 2);
+      widths.type    = Math.max(widths.type,    cleanPolicyLabel(e).length + 2);
       widths.path    = Math.max(widths.path,    e.displayPath.length + 2);
       widths.project = Math.max(widths.project, (e.project ?? '–').length + 2);
       widths.age     = Math.max(widths.age,     e.ageHuman.length + 2);
@@ -82,7 +83,7 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
   ): string {
     const idStr      = String(entry.id);
     const sizeStr    = entry.sizeHuman;
-    const typeStr    = entry.artifactType.label;
+    const typeStr    = cleanPolicyLabel(entry);
     const pathStr    = entry.displayPath;
     const projectStr = entry.project ?? '–';
     const ageStr     = entry.ageHuman;

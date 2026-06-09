@@ -5,6 +5,7 @@ import { DiskScanner, formatBytes } from '../core/DiskScanner.js';
 import { ScanCache } from '../core/ScanCache.js';
 import { Config } from '../core/Config.js';
 import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver.js';
+import { canForceClean, getCleanPolicy, isAutoCleanable } from '../core/CleanPolicy.js';
 import { TableRenderer } from '../renderers/TableRenderer.js';
 import { CleanRenderer, RemovalResult } from '../renderers/CleanRenderer.js';
 import { Colors } from '../renderers/Colors.js';
@@ -19,6 +20,8 @@ interface CleanCommandOptions {
   dryRun?: boolean;
   /** CLI-provided paths to exclude from cleanup. */
   excludePaths?: string[];
+  /** Allow targeted removal of locked entries. Never valid for bulk cleanup. */
+  force?: boolean;
 }
 
 /**
@@ -43,6 +46,11 @@ export class CleanCommand implements ICommand {
   }
 
   async execute(): Promise<void> {
+    if (this.options.force && this.options.id === undefined && this.options.targetPath === undefined) {
+      console.log(`\n  ${Colors.error('--force requires a target ID or path. Bulk force cleanup is not supported.')}\n`);
+      return;
+    }
+
     if (this.options.id !== undefined || this.options.targetPath !== undefined) {
       await this.removeSpecific();
     } else {
@@ -68,20 +76,42 @@ export class CleanCommand implements ICommand {
 
     const label = entry.artifactType.label;
     const loc   = entry.project ?? entry.displayPath;
+    const policy = getCleanPolicy(entry.artifactType);
     const exclusions = getEffectiveExclusions(this.config, this.options.excludePaths);
     const excluded = isExcluded(entry, exclusions);
 
     if (this.options.dryRun) {
       if (excluded) {
         console.log(`  ${Colors.prompt('[DRY RUN]')} ${loc} is in your exclusion list — would be skipped`);
+      } else if (policy === 'locked' && !this.options.force) {
+        console.log(`  ${Colors.prompt('[DRY RUN]')} ${loc} is locked — would be skipped`);
+        console.log(`  ${Colors.dim(entry.artifactType.cleanReason ?? 'Use --force with a target to remove it.')}`);
+      } else if (policy === 'inspect') {
+        console.log(`  ${Colors.prompt('[DRY RUN]')} ${loc} is inspect-only — would be skipped`);
+        console.log(`  ${Colors.dim(entry.artifactType.cleanReason ?? 'Review it manually before removing anything.')}`);
       } else {
-        console.log(`  ${Colors.prompt('[DRY RUN]')} Would delete ${label} at ${loc} (${entry.sizeHuman})`);
+        const action = policy === 'locked' ? 'Would force delete' : 'Would delete';
+        console.log(`  ${Colors.prompt('[DRY RUN]')} ${action} ${label} at ${loc} (${entry.sizeHuman})`);
       }
       console.log(`  ${Colors.dim('No files were modified.')}\n`);
       return;
     }
 
+    if (policy === 'inspect') {
+      console.log(`  ${Colors.dim('Inspect-only entry.')} ${entry.artifactType.cleanReason ?? 'Review it manually before removing anything.'}\n`);
+      return;
+    }
+
+    if (policy === 'locked' && !this.options.force) {
+      console.log(`  ${Colors.dim('Locked entry.')} ${entry.artifactType.cleanReason ?? 'Default clean skips this entry.'}`);
+      console.log(`  ${Colors.dim(`Use disky clean ${entry.id} --force if you really want to remove it.`)}\n`);
+      return;
+    }
+
     let promptText = `Delete ${label} at ${loc}? [y/N]`;
+    if (policy === 'locked' && this.options.force) {
+      promptText = `Force delete locked ${label} at ${loc}? [y/N]`;
+    }
     if (excluded) {
       promptText = `${loc} is in your exclusion list. Remove anyway? [y/N]`;
     }
@@ -93,7 +123,7 @@ export class CleanCommand implements ICommand {
       return;
     }
 
-    const result = this.remove(entry);
+    const result = this.remove(entry, { force: this.options.force });
     if (result) {
       console.log(this.cleanRenderer.renderRemovalResults([result]));
     }
@@ -105,7 +135,9 @@ export class CleanCommand implements ICommand {
     const entries = await this.scanner.scan(true);
     this.cache.save(entries);
 
-    let safeEntries = entries.filter((e) => e.artifactType.safeToClean);
+    let safeEntries = entries.filter(isAutoCleanable);
+    const lockedCount = entries.filter((e) => getCleanPolicy(e.artifactType) === 'locked').length;
+    const inspectCount = entries.filter((e) => getCleanPolicy(e.artifactType) === 'inspect').length;
 
     // Apply exclusions
     const exclusions = getEffectiveExclusions(this.config, this.options.excludePaths);
@@ -116,6 +148,13 @@ export class CleanCommand implements ICommand {
 
     if (excludedCount > 0) {
       console.log(`  ${Colors.dim(`Skipping ${excludedCount} excluded ${excludedCount === 1 ? 'entry' : 'entries'}`)}\n`);
+    }
+    if (lockedCount > 0 || inspectCount > 0) {
+      const parts = [
+        lockedCount > 0 ? `${lockedCount} locked` : null,
+        inspectCount > 0 ? `${inspectCount} inspect-only` : null,
+      ].filter(Boolean);
+      console.log(`  ${Colors.dim(`Skipping ${parts.join(' and ')} ${lockedCount + inspectCount === 1 ? 'entry' : 'entries'}`)}\n`);
     }
 
     if (safeEntries.length === 0) return;
@@ -153,10 +192,12 @@ export class CleanCommand implements ICommand {
    * Removes an entry from disk (or prunes Docker resources) and returns the result.
    * Returns null on failure.
    */
-  private remove(entry: DiskEntry): RemovalResult | null {
+  private remove(entry: DiskEntry, options: { force?: boolean } = {}): RemovalResult | null {
     try {
       if (entry.isDockerEntry) {
         execSync('docker system prune -f 2>/dev/null', { stdio: 'pipe' });
+      } else if (!isAutoCleanable(entry) && !(options.force && canForceClean(entry))) {
+        return null;
       } else {
         execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
       }
