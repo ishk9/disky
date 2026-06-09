@@ -33,7 +33,9 @@ export class Config {
       }
       return { exclude: [] };
     } catch (err) {
-      console.error(`  ${Colors.warn('Warning:')} Failed to parse config at ${Config.CONFIG_FILE}: ${err instanceof Error ? err.message : err}`);
+      console.error(
+        `  ${Colors.warn('Warning:')} Failed to parse config at ${Config.CONFIG_FILE}: ${err instanceof Error ? err.message : err}`,
+      );
       return { exclude: [] };
     }
   }

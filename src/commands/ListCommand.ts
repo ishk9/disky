@@ -55,7 +55,9 @@ export class ListCommand implements ICommand {
     this.sortEntries(entries);
 
     // Reassign sequential IDs after sorting so disky <id> matches displayed order
-    entries.forEach((e, i) => { e.id = i + 1; });
+    entries.forEach((e, i) => {
+      e.id = i + 1;
+    });
 
     this.cache.save(entries);
 
@@ -95,8 +97,9 @@ export class ListCommand implements ICommand {
         entries.sort((a, b) => b.ageMs - a.ageMs);
         break;
       case 'type':
-        entries.sort((a, b) =>
-          a.artifactType.label.localeCompare(b.artifactType.label) || b.sizeBytes - a.sizeBytes,
+        entries.sort(
+          (a, b) =>
+            a.artifactType.label.localeCompare(b.artifactType.label) || b.sizeBytes - a.sizeBytes,
         );
         break;
       case 'size':
@@ -107,7 +110,9 @@ export class ListCommand implements ICommand {
   }
 
   private buildFooter(entries: DiskEntry[]): string {
-    const recoverableBytes = entries.filter(isAutoCleanable).reduce((sum, e) => sum + e.sizeBytes, 0);
+    const recoverableBytes = entries
+      .filter(isAutoCleanable)
+      .reduce((sum, e) => sum + e.sizeBytes, 0);
     const shownBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
     const lockedCount = entries.filter((e) => getCleanPolicy(e.artifactType) === 'locked').length;
     const inspectCount = entries.filter((e) => getCleanPolicy(e.artifactType) === 'inspect').length;
@@ -147,7 +152,7 @@ export function parseMinSize(input: string): number {
   const unit = (match[2] ?? 'MB').toUpperCase();
 
   const multipliers: Record<string, number> = {
-    B:  1,
+    B: 1,
     KB: 1024,
     MB: 1024 ** 2,
     GB: 1024 ** 3,

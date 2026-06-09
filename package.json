@@ -17,8 +17,14 @@
     "start": "node dist/index.js",
     "test": "vitest run",
     "test:watch": "vitest",
-    "lint": "tsc --noEmit",
-    "prepublishOnly": "npm run lint && npm run build"
+    "test:coverage": "vitest run --coverage",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "check": "npm run typecheck && npm run lint && npm run format:check && npm test",
+    "prepublishOnly": "npm run typecheck && npm run lint && npm run build"
   },
   "publishConfig": {
     "access": "public"
@@ -39,10 +45,16 @@
     "react": "^18.3.1"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.4",
     "@types/node": "^22.0.0",
     "@types/react": "^18.3.28",
+    "@vitest/coverage-v8": "^4.1.8",
+    "eslint": "^9.39.4",
+    "eslint-config-prettier": "^10.1.8",
+    "prettier": "^3.8.3",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.5",
+    "typescript-eslint": "^8.61.0",
     "vitest": "^4.1.4"
   }
 }

@@ -70,11 +70,7 @@ export class WatchCommand implements ICommand {
     this.redraw(entries, newIds, removedEntries);
   }
 
-  private redraw(
-    entries: DiskEntry[],
-    newIds: Set<number>,
-    removedEntries: DiskEntry[],
-  ): void {
+  private redraw(entries: DiskEntry[], newIds: Set<number>, removedEntries: DiskEntry[]): void {
     console.clear();
 
     console.log('\n' + this.headerRenderer.render({ watchMode: true }));

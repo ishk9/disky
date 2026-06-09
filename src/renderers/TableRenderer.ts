@@ -11,12 +11,12 @@ interface TableOptions {
 }
 
 const COLS = {
-  id:      { header: 'ID',      min: 6  },
-  size:    { header: 'SIZE',    min: 10 },
-  type:    { header: 'TYPE',    min: 15 },
-  path:    { header: 'PATH',    min: 30 },
+  id: { header: 'ID', min: 6 },
+  size: { header: 'SIZE', min: 10 },
+  type: { header: 'TYPE', min: 15 },
+  path: { header: 'PATH', min: 30 },
   project: { header: 'PROJECT', min: 15 },
-  age:     { header: 'AGE',     min: 10 },
+  age: { header: 'AGE', min: 10 },
 } as const;
 
 type ColKey = keyof typeof COLS;
@@ -26,10 +26,7 @@ type ColKey = keyof typeof COLS;
  */
 export class TableRenderer implements IRenderer<DiskEntry[]> {
   render(entries: DiskEntry[], options: TableOptions = {}): string {
-    const allEntries = [
-      ...(options.removedEntries ?? []),
-      ...entries,
-    ];
+    const allEntries = [...(options.removedEntries ?? []), ...entries];
 
     const widths = this.calculateWidths(allEntries);
     const lines: string[] = [];
@@ -50,21 +47,21 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
 
   private calculateWidths(entries: DiskEntry[]): Record<ColKey, number> {
     const widths: Record<ColKey, number> = {
-      id:      COLS.id.min,
-      size:    COLS.size.min,
-      type:    COLS.type.min,
-      path:    COLS.path.min,
+      id: COLS.id.min,
+      size: COLS.size.min,
+      type: COLS.type.min,
+      path: COLS.path.min,
       project: COLS.project.min,
-      age:     COLS.age.min,
+      age: COLS.age.min,
     };
 
     for (const e of entries) {
-      widths.id      = Math.max(widths.id,      String(e.id).length + 2);
-      widths.size    = Math.max(widths.size,    e.sizeHuman.length + 2);
-      widths.type    = Math.max(widths.type,    cleanPolicyLabel(e).length + 2);
-      widths.path    = Math.max(widths.path,    e.displayPath.length + 2);
+      widths.id = Math.max(widths.id, String(e.id).length + 2);
+      widths.size = Math.max(widths.size, e.sizeHuman.length + 2);
+      widths.type = Math.max(widths.type, cleanPolicyLabel(e).length + 2);
+      widths.path = Math.max(widths.path, e.displayPath.length + 2);
       widths.project = Math.max(widths.project, (e.project ?? '–').length + 2);
-      widths.age     = Math.max(widths.age,     e.ageHuman.length + 2);
+      widths.age = Math.max(widths.age, e.ageHuman.length + 2);
     }
 
     return widths;
@@ -81,12 +78,12 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
     widths: Record<ColKey, number>,
     highlight: 'normal' | 'new' | 'removed',
   ): string {
-    const idStr      = String(entry.id);
-    const sizeStr    = entry.sizeHuman;
-    const typeStr    = cleanPolicyLabel(entry);
-    const pathStr    = entry.displayPath;
+    const idStr = String(entry.id);
+    const sizeStr = entry.sizeHuman;
+    const typeStr = cleanPolicyLabel(entry);
+    const pathStr = entry.displayPath;
     const projectStr = entry.project ?? '–';
-    const ageStr     = entry.ageHuman;
+    const ageStr = entry.ageHuman;
 
     const cells = [
       Colors.id(idStr.padEnd(widths.id)),
@@ -101,7 +98,7 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
 
     const row = '  ' + cells.join('');
 
-    if (highlight === 'new')     return Colors.newEntry(row);
+    if (highlight === 'new') return Colors.newEntry(row);
     if (highlight === 'removed') return Colors.removedEntry(row);
     return row;
   }

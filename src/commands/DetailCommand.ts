@@ -3,7 +3,12 @@ import { IScanner } from '../interfaces/IScanner.js';
 import { DiskScanner } from '../core/DiskScanner.js';
 import { ScanCache } from '../core/ScanCache.js';
 import { Config } from '../core/Config.js';
-import { resolveEntry, promptConfirm, isExcluded, getEffectiveExclusions } from '../core/EntryResolver.js';
+import {
+  resolveEntry,
+  promptConfirm,
+  isExcluded,
+  getEffectiveExclusions,
+} from '../core/EntryResolver.js';
 import { getCleanPolicy } from '../core/CleanPolicy.js';
 import { DetailRenderer } from '../renderers/DetailRenderer.js';
 import { Colors } from '../renderers/Colors.js';
@@ -40,9 +45,10 @@ export class DetailCommand implements ICommand {
     const entry = await resolveEntry(this.options, this.scanner, this.cache);
 
     if (!entry) {
-      const target = this.options.id !== undefined
-        ? `ID ${this.options.id}`
-        : (this.options.targetPath ?? 'unknown');
+      const target =
+        this.options.id !== undefined
+          ? `ID ${this.options.id}`
+          : (this.options.targetPath ?? 'unknown');
       console.log(`\n  ${Colors.error(`No entry found for ${target}`)}\n`);
       return;
     }
@@ -51,13 +57,17 @@ export class DetailCommand implements ICommand {
 
     if (!entry.isDockerEntry) {
       const label = entry.artifactType.label;
-      const loc   = entry.project ?? entry.displayPath;
+      const loc = entry.project ?? entry.displayPath;
       const policy = getCleanPolicy(entry.artifactType);
 
       if (policy !== 'auto') {
-        console.log(`  ${Colors.dim(policy === 'locked' ? 'Locked entry.' : 'Inspect-only entry.')} ${entry.artifactType.cleanReason ?? 'Default clean skips this entry.'}`);
+        console.log(
+          `  ${Colors.dim(policy === 'locked' ? 'Locked entry.' : 'Inspect-only entry.')} ${entry.artifactType.cleanReason ?? 'Default clean skips this entry.'}`,
+        );
         if (policy === 'locked') {
-          console.log(`  ${Colors.dim(`Use disky clean ${entry.id} --force if you really want to remove it.`)}`);
+          console.log(
+            `  ${Colors.dim(`Use disky clean ${entry.id} --force if you really want to remove it.`)}`,
+          );
         }
         console.log('');
         return;
@@ -84,7 +94,7 @@ export class DetailCommand implements ICommand {
       execFileSync('rm', ['-rf', entry.absolutePath], { stdio: 'pipe' });
       console.log(
         `\n  ${Colors.success('✓')} Removed ${Colors.artifact(entry.artifactType.color)(entry.artifactType.label)} ` +
-        `${Colors.dim(entry.displayPath)}\n`,
+          `${Colors.dim(entry.displayPath)}\n`,
       );
     } catch {
       console.log(`\n  ${Colors.error('✗')} Failed to remove ${entry.displayPath}\n`);

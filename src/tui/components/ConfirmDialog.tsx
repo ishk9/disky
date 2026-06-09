@@ -10,18 +10,31 @@ interface ConfirmDialogProps {
 }
 
 export function ConfirmDialog({ message, onConfirm, onCancel, active = true }: ConfirmDialogProps) {
-  useKeyBindings({
-    onKey: (key) => {
-      if (key === 'y' || key === 'Y') onConfirm();
-      else if (key === 'n' || key === 'N') onCancel();
+  useKeyBindings(
+    {
+      onKey: (key) => {
+        if (key === 'y' || key === 'Y') onConfirm();
+        else if (key === 'n' || key === 'N') onCancel();
+      },
+      onEscape: onCancel,
     },
-    onEscape: onCancel,
-  }, active);
+    active,
+  );
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="yellow" paddingX={1}>
       <Text color="yellow">{message}</Text>
-      <Text color="gray">Press <Text color="green" bold>y</Text> to confirm, <Text color="red" bold>n</Text> to cancel</Text>
+      <Text color="gray">
+        Press{' '}
+        <Text color="green" bold>
+          y
+        </Text>{' '}
+        to confirm,{' '}
+        <Text color="red" bold>
+          n
+        </Text>{' '}
+        to cancel
+      </Text>
     </Box>
   );
 }

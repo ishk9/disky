@@ -14,7 +14,9 @@ export function TopOffendersChart({ offenders, maxBarWidth = 30 }: TopOffendersC
 
   return (
     <Box flexDirection="column">
-      <Text color="gray" bold>{'\u2500'.repeat(50)}</Text>
+      <Text color="gray" bold>
+        {'\u2500'.repeat(50)}
+      </Text>
       <Text color="gray"> Top Offenders</Text>
       <Text> </Text>
       {offenders.map((offender, i) => {

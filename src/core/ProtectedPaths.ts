@@ -13,7 +13,9 @@ function normalizeExistingPath(p: string): string {
 
 function isSameOrInside(parent: string, candidate: string): boolean {
   const relative = path.relative(parent, candidate);
-  return relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+  return (
+    relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative))
+  );
 }
 
 const runtimeRoot = normalizeExistingPath(

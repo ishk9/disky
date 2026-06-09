@@ -46,9 +46,10 @@ export class ProjectDetector {
   }
 
   private findProjectRoot(startPath: string): string | null {
-    let current = fs.existsSync(startPath) && fs.statSync(startPath).isDirectory()
-      ? startPath
-      : path.dirname(startPath);
+    let current =
+      fs.existsSync(startPath) && fs.statSync(startPath).isDirectory()
+        ? startPath
+        : path.dirname(startPath);
 
     const home = process.env.HOME ?? '/';
 
@@ -98,9 +99,10 @@ export class ProjectDetector {
   }
 
   private findGitDir(startPath: string): string | null {
-    let current = fs.existsSync(startPath) && fs.statSync(startPath).isDirectory()
-      ? startPath
-      : path.dirname(startPath);
+    let current =
+      fs.existsSync(startPath) && fs.statSync(startPath).isDirectory()
+        ? startPath
+        : path.dirname(startPath);
 
     const home = process.env.HOME ?? '/';
 

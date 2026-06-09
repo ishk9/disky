@@ -21,20 +21,20 @@ const program = new Command();
 
 program
   .name('disky')
-  .description('Surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup')
+  .description(
+    'Surfaces disk hogs — node_modules, .next, dist, Docker images, build caches — with one-command cleanup',
+  )
   .version(pkg.version);
 
 // ─── disky (welcome splash, no scan) ──────────────────────────────────────
-program
-  .argument('[target]', 'Entry ID or directory path to inspect')
-  .action((target?: string) => {
-    if (!target) {
-      new WelcomeCommand().execute().catch(handleError);
-      return;
-    }
-    const opts = resolveTarget(target);
-    new DetailCommand(opts).execute().catch(handleError);
-  });
+program.argument('[target]', 'Entry ID or directory path to inspect').action((target?: string) => {
+  if (!target) {
+    new WelcomeCommand().execute().catch(handleError);
+    return;
+  }
+  const opts = resolveTarget(target);
+  new DetailCommand(opts).execute().catch(handleError);
+});
 
 // ─── disky scan ───────────────────────────────────────────────────────────
 program
@@ -49,18 +49,24 @@ program
     const minBytes = opts.min ? parseMinSize(opts.min) : undefined;
 
     if (opts.min && (isNaN(minBytes!) || minBytes! <= 0)) {
-      console.error(`\n  ${Colors.error(`Invalid size "${opts.min}". Use formats like 500MB, 1.5GB, 100KB.\n`)}`);
+      console.error(
+        `\n  ${Colors.error(`Invalid size "${opts.min}". Use formats like 500MB, 1.5GB, 100KB.\n`)}`,
+      );
       process.exit(1);
     }
 
     const validSortModes = ['size', 'age', 'type'];
     if (opts.sort && !validSortModes.includes(opts.sort)) {
-      console.error(`\n  ${Colors.error(`Invalid sort mode "${opts.sort}". Use: size, age, or type.\n`)}`);
+      console.error(
+        `\n  ${Colors.error(`Invalid sort mode "${opts.sort}". Use: size, age, or type.\n`)}`,
+      );
       process.exit(1);
     }
 
     const sortMode = (opts.sort as 'size' | 'age' | 'type') ?? 'size';
-    new ListCommand({ artifactOnly: !opts.all, minBytes, sortMode, json: opts.json, top: opts.top }).execute().catch(handleError);
+    new ListCommand({ artifactOnly: !opts.all, minBytes, sortMode, json: opts.json, top: opts.top })
+      .execute()
+      .catch(handleError);
   });
 
 // ─── disky watch ──────────────────────────────────────────────────────────
@@ -76,20 +82,33 @@ program
   .command('tui')
   .description('Launch the interactive terminal UI')
   .action(() => {
-    import('./tui/App.js').then(({ launchTUI }) => launchTUI().catch(handleError)).catch(handleError);
+    import('./tui/App.js')
+      .then(({ launchTUI }) => launchTUI().catch(handleError))
+      .catch(handleError);
   });
 
 // ─── disky clean [id|path] ────────────────────────────────────────────────
 program
   .command('clean [target]')
-  .description('Remove disk hogs. Pass an ID or path to target a specific entry; omit for interactive bulk cleanup')
+  .description(
+    'Remove disk hogs. Pass an ID or path to target a specific entry; omit for interactive bulk cleanup',
+  )
   .option('--dry-run', 'Preview what would be deleted without removing anything')
   .option('--exclude <paths...>', 'Paths to skip during cleanup (repeatable)')
   .option('--force', 'Allow targeted removal of locked entries')
-  .action((target?: string, cmdOpts?: { dryRun?: boolean; exclude?: string[]; force?: boolean }) => {
-    const opts = resolveTarget(target);
-    new CleanCommand({ ...opts, dryRun: cmdOpts?.dryRun, excludePaths: cmdOpts?.exclude, force: cmdOpts?.force }).execute().catch(handleError);
-  });
+  .action(
+    (target?: string, cmdOpts?: { dryRun?: boolean; exclude?: string[]; force?: boolean }) => {
+      const opts = resolveTarget(target);
+      new CleanCommand({
+        ...opts,
+        dryRun: cmdOpts?.dryRun,
+        excludePaths: cmdOpts?.exclude,
+        force: cmdOpts?.force,
+      })
+        .execute()
+        .catch(handleError);
+    },
+  );
 
 program.parse(process.argv);
 

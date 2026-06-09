@@ -43,11 +43,15 @@ export function BreakdownPanel({ isActive, height, data }: BreakdownPanelProps) 
   const visible = groups.slice(0, visibleRows);
 
   return (
-    <Box flexDirection="column" borderStyle="single" borderColor={color} height={height} overflow="hidden">
+    <Box
+      flexDirection="column"
+      borderStyle="single"
+      borderColor={color}
+      height={height}
+      overflow="hidden"
+    >
       <Text color={color}>─ [2] Breakdown</Text>
-      {visible.length === 0 && (
-        <Text color="gray"> No data</Text>
-      )}
+      {visible.length === 0 && <Text color="gray"> No data</Text>}
       {visible.map((g) => {
         const barLen = Math.max(1, Math.round((g.sizeBytes / maxBytes) * BAR_WIDTH));
         const bar = '\u2588'.repeat(barLen) + '\u2591'.repeat(BAR_WIDTH - barLen);

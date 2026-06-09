@@ -28,7 +28,11 @@ export class DockerScanner {
       const containerStats = this.getStoppedContainerStats();
 
       const reclaimableBytes = imageStats.danglingBytes + containerStats.reclaimableBytes;
-      const summary = this.buildSummary(imageStats.total, imageStats.dangling, containerStats.stopped);
+      const summary = this.buildSummary(
+        imageStats.total,
+        imageStats.dangling,
+        containerStats.stopped,
+      );
 
       return {
         imageSizeBytes: imageStats.totalBytes,
@@ -67,10 +71,10 @@ export class DockerScanner {
     let danglingBytes = 0;
 
     try {
-      const raw = execSync(
-        'docker images --format "{{.Size}}\t{{.Repository}}" 2>/dev/null',
-        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'] },
-      );
+      const raw = execSync('docker images --format "{{.Size}}\t{{.Repository}}" 2>/dev/null', {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+      });
 
       for (const line of raw.split('\n')) {
         const trimmed = line.trim();

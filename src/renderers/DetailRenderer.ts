@@ -44,7 +44,9 @@ export class DetailRenderer implements IRenderer<DiskEntry> {
     ];
 
     if (entry.ageMs >= AGE_STALE_MS) {
-      lines.push(`  ${Colors.ageStale(`⚠  Not touched in over 90 days — ${getCleanPolicy(entry.artifactType) === 'auto' ? 'safe to remove' : 'inspect before removing anything'}`)}`);
+      lines.push(
+        `  ${Colors.ageStale(`⚠  Not touched in over 90 days — ${getCleanPolicy(entry.artifactType) === 'auto' ? 'safe to remove' : 'inspect before removing anything'}`)}`,
+      );
     } else if (entry.ageMs >= AGE_WARN_MS) {
       lines.push(`  ${Colors.ageWarn('·  Unused for over 30 days')}`);
     }
@@ -53,9 +55,9 @@ export class DetailRenderer implements IRenderer<DiskEntry> {
   }
 
   private renderAgeField(entry: DiskEntry): string {
-    if (entry.ageMs <= 0)              return Colors.dim('–');
-    if (entry.ageMs >= AGE_STALE_MS)   return Colors.ageStale(entry.ageHuman + ' ⚠');
-    if (entry.ageMs >= AGE_WARN_MS)    return Colors.ageWarn(entry.ageHuman);
+    if (entry.ageMs <= 0) return Colors.dim('–');
+    if (entry.ageMs >= AGE_STALE_MS) return Colors.ageStale(entry.ageHuman + ' ⚠');
+    if (entry.ageMs >= AGE_WARN_MS) return Colors.ageWarn(entry.ageHuman);
     return Colors.age(entry.ageHuman);
   }
 
@@ -85,8 +87,8 @@ export class DetailRenderer implements IRenderer<DiskEntry> {
 
     for (const offender of entry.topOffenders) {
       const arrow = Colors.treeGlyph('→');
-      const name  = offender.name.padEnd(32);
-      const size  = Colors.size(offender.sizeHuman);
+      const name = offender.name.padEnd(32);
+      const size = Colors.size(offender.sizeHuman);
       lines.push(`  ${arrow} ${name}${size}`);
     }
 
@@ -108,10 +110,10 @@ export class DetailRenderer implements IRenderer<DiskEntry> {
       return `  ${Colors.dim(entry.artifactType.cleanReason ?? 'Review this directory manually before removing anything.')}`;
     }
 
-    const cmd  = Colors.removeCommand('disky clean');
-    const id   = Colors.removeId(String(entry.id));
-    const sep  = Colors.dim('  or  ');
-    const pth  = Colors.removePath(entry.displayPath);
+    const cmd = Colors.removeCommand('disky clean');
+    const id = Colors.removeId(String(entry.id));
+    const sep = Colors.dim('  or  ');
+    const pth = Colors.removePath(entry.displayPath);
     return `  ${Colors.dim('Remove this directory:')} ${cmd} ${id}${sep}${cmd} ${pth}`;
   }
 }

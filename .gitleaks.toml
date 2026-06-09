@@ -1,0 +1,27 @@
+# gitleaks config — extends the default ruleset with disky-specific guards.
+# A CLI published to npm must never ship an auth token. See SECURITY.md.
+
+title = "disky gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "npm-token"
+description = "npm access token"
+regex = '''npm_[A-Za-z0-9]{36}'''
+tags = ["npm", "token"]
+
+[[rules]]
+id = "npmrc-authtoken"
+description = "npm registry _authToken"
+regex = '''//.*/:_authToken=.+'''
+tags = ["npm", "token"]
+
+[allowlist]
+description = "Ignore vendored deps, build output, and lockfile."
+paths = [
+  '''node_modules/''',
+  '''dist/''',
+  '''package-lock\.json''',
+]

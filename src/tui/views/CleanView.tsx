@@ -48,52 +48,69 @@ export function CleanView({
         : [];
     }
     if (!scanData) return [];
-    return scanData
-      .filter(isAutoCleanable)
-      .filter((e) => !isExcluded(e, exclusions));
+    return scanData.filter(isAutoCleanable).filter((e) => !isExcluded(e, exclusions));
   }, [scanData, targetEntry, exclusions]);
 
   const entries = safeEntries();
-  const sourceEntries = targetEntry ? [targetEntry] : scanData ?? [];
-  const lockedCount = sourceEntries.filter((e) => getCleanPolicy(e.artifactType) === 'locked').length;
-  const inspectCount = sourceEntries.filter((e) => getCleanPolicy(e.artifactType) === 'inspect').length;
+  const sourceEntries = targetEntry ? [targetEntry] : (scanData ?? []);
+  const lockedCount = sourceEntries.filter(
+    (e) => getCleanPolicy(e.artifactType) === 'locked',
+  ).length;
+  const inspectCount = sourceEntries.filter(
+    (e) => getCleanPolicy(e.artifactType) === 'inspect',
+  ).length;
 
   // Pre-select the target entry when one is provided
   useEffect(() => {
-    if (targetEntry) setSelected(isAutoCleanable(targetEntry) ? new Set([targetEntry.id]) : new Set());
+    if (targetEntry)
+      setSelected(isAutoCleanable(targetEntry) ? new Set([targetEntry.id]) : new Set());
   }, [targetEntry]);
 
-  useKeyBindings({
-    onUp:   () => setCursor((c) => Math.max(0, c - 1)),
-    onDown: () => setCursor((c) => Math.min(Math.max(0, entries.length - 1), c + 1)),
-    onSpace: () => {
-      if (entries.length === 0) return;
-      const id = entries[cursor].id;
-      setSelected((s) => {
-        const next = new Set(s);
-        if (next.has(id)) next.delete(id); else next.add(id);
-        return next;
-      });
+  useKeyBindings(
+    {
+      onUp: () => setCursor((c) => Math.max(0, c - 1)),
+      onDown: () => setCursor((c) => Math.min(Math.max(0, entries.length - 1), c + 1)),
+      onSpace: () => {
+        if (entries.length === 0) return;
+        const id = entries[cursor].id;
+        setSelected((s) => {
+          const next = new Set(s);
+          if (next.has(id)) next.delete(id);
+          else next.add(id);
+          return next;
+        });
+      },
+      onEnter: () => {
+        if (selected.size === 0 || cleaning || results.length > 0) return;
+        setDryRun(false);
+        setShowConfirm(true);
+      },
+      onEscape: () => {
+        if (showConfirm) {
+          setShowConfirm(false);
+          return;
+        }
+        onBack();
+      },
+      onKey: (key) => {
+        switch (key) {
+          case 'a':
+            setSelected(new Set(entries.map((e) => e.id)));
+            break;
+          case 'n':
+            setSelected(new Set());
+            break;
+          case 'p':
+            if (selected.size > 0 && !cleaning) {
+              setDryRun(true);
+              setShowConfirm(true);
+            }
+            break;
+        }
+      },
     },
-    onEnter: () => {
-      if (selected.size === 0 || cleaning || results.length > 0) return;
-      setDryRun(false);
-      setShowConfirm(true);
-    },
-    onEscape: () => {
-      if (showConfirm) { setShowConfirm(false); return; }
-      onBack();
-    },
-    onKey: (key) => {
-      switch (key) {
-        case 'a': setSelected(new Set(entries.map((e) => e.id))); break;
-        case 'n': setSelected(new Set()); break;
-        case 'p':
-          if (selected.size > 0 && !cleaning) { setDryRun(true); setShowConfirm(true); }
-          break;
-      }
-    },
-  }, isActive && !showConfirm && !cleaning);
+    isActive && !showConfirm && !cleaning,
+  );
 
   const handleConfirm = () => {
     setShowConfirm(false);
@@ -102,7 +119,7 @@ export function CleanView({
   };
 
   const selectedEntries = entries.filter((e) => selected.has(e.id));
-  const selectedBytes   = selectedEntries.reduce((s, e) => s + e.sizeBytes, 0);
+  const selectedBytes = selectedEntries.reduce((s, e) => s + e.sizeBytes, 0);
   const loading = scanLoading && !targetEntry;
 
   // Viewport windowing
@@ -116,21 +133,23 @@ export function CleanView({
   return (
     <Box flexDirection="column" paddingX={1}>
       {loading && (
-        <Box marginTop={1}><Text color="cyan"> Scanning for cleanable entries{'\u2026'}</Text></Box>
+        <Box marginTop={1}>
+          <Text color="cyan"> Scanning for cleanable entries{'\u2026'}</Text>
+        </Box>
       )}
 
       {!loading && entries.length > 0 && !results.length && (
         <Box flexDirection="column" marginTop={1}>
           {visible.map((entry, i) => {
             const idx = startIdx + i;
-            const isCursor   = idx === cursor;
+            const isCursor = idx === cursor;
             const isSelected = selected.has(entry.id);
-            const excluded   = isExcluded(entry, exclusions);
+            const excluded = isExcluded(entry, exclusions);
             return (
               <Box key={entry.id}>
                 <Text color={isCursor ? 'cyan' : undefined}>{isCursor ? '\u25b6 ' : '  '}</Text>
                 <Text color={isSelected ? 'green' : 'gray'}>{isSelected ? '[x]' : '[ ]'} </Text>
-                <Text color={excluded ? 'gray' : entry.artifactType.color as any}>
+                <Text color={excluded ? 'gray' : (entry.artifactType.color as any)}>
                   {entry.artifactType.label.padEnd(18)}
                 </Text>
                 <Text color={excluded ? 'gray' : 'white'}>{entry.displayPath.padEnd(40)}</Text>
@@ -142,7 +161,9 @@ export function CleanView({
           {total > viewportHeight && (
             <Box>
               <Text color="gray">
-                {'  '}{startIdx > 0 ? '\u25b2' : ' '} showing {startIdx + 1}–{endIdx} of {total} {endIdx < total ? '\u25bc' : ' '}
+                {'  '}
+                {startIdx > 0 ? '\u25b2' : ' '} showing {startIdx + 1}–{endIdx} of {total}{' '}
+                {endIdx < total ? '\u25bc' : ' '}
               </Text>
             </Box>
           )}
@@ -150,14 +171,18 @@ export function CleanView({
       )}
 
       {!loading && entries.length === 0 && !results.length && (
-        <Box marginTop={1}><Text color="gray"> No cleanable entries found.</Text></Box>
+        <Box marginTop={1}>
+          <Text color="gray"> No cleanable entries found.</Text>
+        </Box>
       )}
 
       {!loading && (lockedCount > 0 || inspectCount > 0) && !results.length && (
         <Box marginTop={1}>
           <Text color="gray">
-            {' '}Skipped {lockedCount + inspectCount} {lockedCount + inspectCount === 1 ? 'entry' : 'entries'}{' '}
-            {'\u00b7'} inspect from scan results
+            {' '}
+            Skipped {lockedCount + inspectCount}{' '}
+            {lockedCount + inspectCount === 1 ? 'entry' : 'entries'} {'\u00b7'} inspect from scan
+            results
           </Text>
         </Box>
       )}
@@ -165,33 +190,54 @@ export function CleanView({
       {!loading && selected.size > 0 && !results.length && (
         <Box marginTop={1}>
           <Text color="yellow">
-            {' '}{selected.size} {selected.size === 1 ? 'entry' : 'entries'} selected{' '}
-            {'\u00b7'} {formatBytes(selectedBytes)} will be freed
+            {' '}
+            {selected.size} {selected.size === 1 ? 'entry' : 'entries'} selected {'\u00b7'}{' '}
+            {formatBytes(selectedBytes)} will be freed
           </Text>
         </Box>
       )}
 
       {/* Dry-run preview */}
       {dryRun && showConfirm && (
-        <Box flexDirection="column" marginTop={1} borderStyle="round" borderColor="yellow" paddingX={1}>
-          <Text color="yellow" bold> [DRY RUN] Preview</Text>
+        <Box
+          flexDirection="column"
+          marginTop={1}
+          borderStyle="round"
+          borderColor="yellow"
+          paddingX={1}
+        >
+          <Text color="yellow" bold>
+            {' '}
+            [DRY RUN] Preview
+          </Text>
           {selectedEntries.map((e) => (
-            <Text key={e.id} color="gray">  Would delete {e.artifactType.label} at {e.displayPath} ({e.sizeHuman})</Text>
+            <Text key={e.id} color="gray">
+              {' '}
+              Would delete {e.artifactType.label} at {e.displayPath} ({e.sizeHuman})
+            </Text>
           ))}
           {(lockedCount > 0 || inspectCount > 0) && (
-            <Text color="gray">  Skipped {lockedCount + inspectCount} locked or inspect-only {lockedCount + inspectCount === 1 ? 'entry' : 'entries'}.</Text>
+            <Text color="gray">
+              {' '}
+              Skipped {lockedCount + inspectCount} locked or inspect-only{' '}
+              {lockedCount + inspectCount === 1 ? 'entry' : 'entries'}.
+            </Text>
           )}
-          <Text color="gray">  No files will be modified.</Text>
-          <Text color="gray">  Press any key to close</Text>
+          <Text color="gray"> No files will be modified.</Text>
+          <Text color="gray"> Press any key to close</Text>
         </Box>
       )}
 
       {cleaning && (
         <Box flexDirection="column" marginTop={1}>
-          <Text color="cyan" bold> Cleaning{'\u2026'}</Text>
+          <Text color="cyan" bold>
+            {' '}
+            Cleaning{'\u2026'}
+          </Text>
           {results.map((r) => (
             <Text key={r.id} color={r.success ? 'green' : 'red'}>
-              {' '}{r.success ? '\u2713' : '\u2717'} {r.label} at {r.displayPath}
+              {' '}
+              {r.success ? '\u2713' : '\u2717'} {r.label} at {r.displayPath}
               {r.success ? ` (freed ${formatBytes(r.bytesFreed)})` : ' (failed)'}
             </Text>
           ))}
@@ -200,16 +246,22 @@ export function CleanView({
 
       {!cleaning && results.length > 0 && (
         <Box flexDirection="column" marginTop={1}>
-          <Text color="green" bold> Cleanup Complete</Text>
+          <Text color="green" bold>
+            {' '}
+            Cleanup Complete
+          </Text>
           {results.map((r) => (
             <Text key={r.id} color={r.success ? 'green' : 'red'}>
-              {' '}{r.success ? '\u2713' : '\u2717'} {r.label} at {r.displayPath}
+              {' '}
+              {r.success ? '\u2713' : '\u2717'} {r.label} at {r.displayPath}
               {r.success ? ` (freed ${formatBytes(r.bytesFreed)})` : ' (failed)'}
             </Text>
           ))}
           <Box marginTop={1}>
             <Text color="green" bold>
-              {' '}Total freed: {formatBytes(results.filter((r) => r.success).reduce((s, r) => s + r.bytesFreed, 0))}
+              {' '}
+              Total freed:{' '}
+              {formatBytes(results.filter((r) => r.success).reduce((s, r) => s + r.bytesFreed, 0))}
             </Text>
           </Box>
         </Box>
@@ -226,9 +278,18 @@ export function CleanView({
       )}
 
       <StatusBar
-        hints={results.length > 0
-          ? ['Esc back']
-          : ['\u2191\u2193 navigate', 'Space toggle', 'a all cleanable', 'n none', 'Enter confirm', 'p preview', 'Esc back']
+        hints={
+          results.length > 0
+            ? ['Esc back']
+            : [
+                '\u2191\u2193 navigate',
+                'Space toggle',
+                'a all cleanable',
+                'n none',
+                'Enter confirm',
+                'p preview',
+                'Esc back',
+              ]
         }
       />
     </Box>

@@ -15,24 +15,35 @@ interface WatchViewProps {
 export function WatchView({ onBack, isActive, viewportHeight = 12 }: WatchViewProps) {
   const { entries, newIds, removedEntries, loading } = useWatcher(isActive);
 
-  useKeyBindings({
-    onEscape: onBack,
-    onKey: (key) => { if (key === 'q') onBack(); },
-  }, isActive);
+  useKeyBindings(
+    {
+      onEscape: onBack,
+      onKey: (key) => {
+        if (key === 'q') onBack();
+      },
+    },
+    isActive,
+  );
 
   const totalBytes = entries.reduce((s, e) => s + e.sizeBytes, 0);
   const time = new Date().toLocaleTimeString('en-US', {
-    hour: '2-digit', minute: '2-digit', second: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
   });
 
   return (
     <Box flexDirection="column" paddingX={1}>
       {loading && (
-        <Box marginTop={1}><Text color="cyan"> Scanning{'\u2026'}</Text></Box>
+        <Box marginTop={1}>
+          <Text color="cyan"> Scanning{'\u2026'}</Text>
+        </Box>
       )}
 
       {!loading && entries.length === 0 && removedEntries.length === 0 && (
-        <Box marginTop={1}><Text color="gray"> No disk hogs found.</Text></Box>
+        <Box marginTop={1}>
+          <Text color="gray"> No disk hogs found.</Text>
+        </Box>
       )}
 
       {!loading && (entries.length > 0 || removedEntries.length > 0) && (

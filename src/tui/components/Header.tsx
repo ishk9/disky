@@ -12,7 +12,9 @@ export function Header({ watchMode }: HeaderProps) {
   return (
     <Box flexDirection="column">
       {LOGO_ROWS.map((row, i) => (
-        <Text key={i} color="cyan" bold>{row}</Text>
+        <Text key={i} color="cyan" bold>
+          {row}
+        </Text>
       ))}
       <Box marginTop={1} flexDirection="row" gap={2}>
         <Text color="gray">gobbling up your space{'\u2026'}</Text>

@@ -21,7 +21,7 @@ export class CleanRenderer implements IRenderer<DiskEntry[]> {
 
     const totalBytes = entries.reduce((sum, e) => sum + e.sizeBytes, 0);
 
-    const idW   = Math.max(4, ...entries.map((e) => String(e.id).length)) + 2;
+    const idW = Math.max(4, ...entries.map((e) => String(e.id).length)) + 2;
     const sizeW = Math.max(6, ...entries.map((e) => e.sizeHuman.length)) + 2;
     const typeW = Math.max(6, ...entries.map((e) => e.artifactType.label.length)) + 2;
     const pathW = Math.max(6, ...entries.map((e) => e.displayPath.length)) + 2;
@@ -63,9 +63,9 @@ export class CleanRenderer implements IRenderer<DiskEntry[]> {
     const totalFreed = results.reduce((sum, r) => sum + r.bytesFreed, 0);
 
     for (const r of results) {
-      const id    = Colors.id(`[${r.id}]`);
+      const id = Colors.id(`[${r.id}]`);
       const label = Colors.artifact('green')(r.label.padEnd(16));
-      const pth   = Colors.dim(r.displayPath.padEnd(40));
+      const pth = Colors.dim(r.displayPath.padEnd(40));
       const freed = Colors.size(`(${formatBytes(r.bytesFreed)} freed)`);
       lines.push(`  ${Colors.success('✓')} ${id} Removed ${label} ${pth} ${freed}`);
     }

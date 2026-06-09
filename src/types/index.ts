@@ -1,16 +1,9 @@
 /** Age threshold for a "getting old" warning (30 days in ms). */
-export const AGE_WARN_MS  = 30 * 24 * 60 * 60 * 1000;
+export const AGE_WARN_MS = 30 * 24 * 60 * 60 * 1000;
 /** Age threshold for a "stale / slam-dunk delete" warning (90 days in ms). */
 export const AGE_STALE_MS = 90 * 24 * 60 * 60 * 1000;
 
-export type ArtifactColorKey =
-  | 'green'
-  | 'cyan'
-  | 'blue'
-  | 'yellow'
-  | 'gray'
-  | 'red'
-  | 'magenta';
+export type ArtifactColorKey = 'green' | 'cyan' | 'blue' | 'yellow' | 'gray' | 'red' | 'magenta';
 
 export type CleanPolicy = 'auto' | 'locked' | 'inspect';
 

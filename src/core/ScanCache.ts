@@ -27,7 +27,9 @@ export class ScanCache {
 
       fs.writeFileSync(ScanCache.CACHE_FILE, JSON.stringify(cached, null, 2), 'utf8');
     } catch (err) {
-      console.error(`  ${Colors.warn('Warning:')} Could not write scan cache: ${err instanceof Error ? err.message : err}`);
+      console.error(
+        `  ${Colors.warn('Warning:')} Could not write scan cache: ${err instanceof Error ? err.message : err}`,
+      );
     }
   }
 
@@ -37,7 +39,9 @@ export class ScanCache {
       const raw = fs.readFileSync(ScanCache.CACHE_FILE, 'utf8');
       return JSON.parse(raw) as CachedEntry[];
     } catch (err) {
-      console.error(`  ${Colors.warn('Warning:')} Could not read scan cache: ${err instanceof Error ? err.message : err}`);
+      console.error(
+        `  ${Colors.warn('Warning:')} Could not read scan cache: ${err instanceof Error ? err.message : err}`,
+      );
       return [];
     }
   }

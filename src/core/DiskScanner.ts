@@ -19,7 +19,7 @@ const DU_CONCURRENCY = 8;
 const SKIP_DIRS = new Set([
   'node_modules', // descend into project roots, not into node_modules
   '.git',
-  'Library',       // macOS system libraries — handled separately
+  'Library', // macOS system libraries — handled separately
   'System',
   'Applications',
   'Volumes',
@@ -179,10 +179,11 @@ export class DiskScanner implements IScanner {
     const results: Array<[string, number]> = [];
 
     try {
-      const raw = execSync(
-        `du -d ${ALL_SCAN_DEPTH} -k "${home}" 2>/dev/null | sort -rn`,
-        { encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe'], maxBuffer: 20 * 1024 * 1024 },
-      );
+      const raw = execSync(`du -d ${ALL_SCAN_DEPTH} -k "${home}" 2>/dev/null | sort -rn`, {
+        encoding: 'utf8',
+        stdio: ['pipe', 'pipe', 'pipe'],
+        maxBuffer: 20 * 1024 * 1024,
+      });
 
       for (const line of raw.split('\n')) {
         const trimmed = line.trim();
@@ -220,8 +221,14 @@ export class DiskScanner implements IScanner {
     const dirName = path.basename(absPath);
 
     const projectInfo = this.projectDetector.resolve(path.dirname(absPath), projectInfoCache);
-    const detectedArtifact = this.registry.resolve(dirName, absPath) ?? fallbackArtifact ?? this.unknownArtifact();
-    const artifactType = classifyCleanPolicy(detectedArtifact, absPath, projectInfo.directory, mode);
+    const detectedArtifact =
+      this.registry.resolve(dirName, absPath) ?? fallbackArtifact ?? this.unknownArtifact();
+    const artifactType = classifyCleanPolicy(
+      detectedArtifact,
+      absPath,
+      projectInfo.directory,
+      mode,
+    );
     const ageMs = this.getAgeMs(absPath);
 
     return {
@@ -347,11 +354,10 @@ export class DiskScanner implements IScanner {
       const children = fs.readdirSync(dirPath).map((name) => path.join(dirPath, name));
       if (children.length === 0) return [];
 
-      const { stdout } = await execFileAsync(
-        'du',
-        ['-sk', ...children],
-        { encoding: 'utf8', maxBuffer: 4 * 1024 * 1024 },
-      );
+      const { stdout } = await execFileAsync('du', ['-sk', ...children], {
+        encoding: 'utf8',
+        maxBuffer: 4 * 1024 * 1024,
+      });
 
       return this.parseTopOffenders(stdout);
     } catch (err) {
@@ -432,7 +438,7 @@ function stdoutFromExecError(err: unknown): string {
 export function formatBytes(bytes: number): string {
   if (bytes >= 1024 ** 3) return `${(bytes / 1024 ** 3).toFixed(1)} GB`;
   if (bytes >= 1024 ** 2) return `${(bytes / 1024 ** 2).toFixed(0)} MB`;
-  if (bytes >= 1024)      return `${(bytes / 1024).toFixed(0)} KB`;
+  if (bytes >= 1024) return `${(bytes / 1024).toFixed(0)} KB`;
   return `${bytes} B`;
 }
 
@@ -440,11 +446,11 @@ export function formatAge(ms: number): string {
   if (ms <= 0) return '–';
   const seconds = Math.floor(ms / 1000);
   const minutes = Math.floor(seconds / 60);
-  const hours   = Math.floor(minutes / 60);
-  const days    = Math.floor(hours / 24);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
 
-  if (days > 0)    return `${days}d ago`;
-  if (hours > 0)   return `${hours}h ago`;
+  if (days > 0) return `${days}d ago`;
+  if (hours > 0) return `${hours}h ago`;
   if (minutes > 0) return `${minutes}m ago`;
   return 'just now';
 }

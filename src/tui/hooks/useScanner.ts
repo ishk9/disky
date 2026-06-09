@@ -9,9 +9,7 @@ interface ScanState {
   error: string | null;
 }
 
-type WorkerMessage =
-  | { ok: true; entries: DiskEntry[] }
-  | { ok: false; error: string };
+type WorkerMessage = { ok: true; entries: DiskEntry[] } | { ok: false; error: string };
 
 const cache = new ScanCache();
 const workerUrl = new URL('../workers/scanWorker.js', import.meta.url);

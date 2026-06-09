@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# disky pre-commit hook.
+# Enable once per clone:  git config core.hooksPath .githooks
+set -euo pipefail
+
+# Collect staged, non-deleted TS/TSX files under src/ or tests/.
+# Newline-delimited to stay compatible with macOS's bundled bash 3.2 (no mapfile).
+files=$(git diff --cached --name-only --diff-filter=ACM -- 'src/*.ts' 'src/*.tsx' 'tests/*.ts' || true)
+
+if [ -n "$files" ]; then
+  count=$(printf '%s\n' "$files" | grep -c . || true)
+  echo "pre-commit: prettier + eslint on ${count} file(s)"
+  printf '%s\n' "$files" | xargs npx prettier --write
+  printf '%s\n' "$files" | xargs npx eslint
+  printf '%s\n' "$files" | xargs git add
+fi
+
+# Best-effort secret scan; skip silently if gitleaks isn't installed.
+if command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks"
+  gitleaks protect --staged --redact --config .gitleaks.toml
+fi

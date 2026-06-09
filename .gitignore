@@ -19,8 +19,8 @@ Thumbs.db
 *.swp
 *.swo
 
-# Tests
-tests/
+# Coverage
+coverage/
 
 # Docs (local only)
 future-scope.md

@@ -12,7 +12,13 @@ interface EntryTableProps {
   removedEntries?: DiskEntry[];
 }
 
-export function EntryTable({ entries, cursorIndex, viewportHeight = 20, newIds, removedEntries }: EntryTableProps) {
+export function EntryTable({
+  entries,
+  cursorIndex,
+  viewportHeight = 20,
+  newIds,
+  removedEntries,
+}: EntryTableProps) {
   // Calculate viewport window
   const totalEntries = entries.length;
   const halfViewport = Math.floor(viewportHeight / 2);
@@ -28,13 +34,27 @@ export function EntryTable({ entries, cursorIndex, viewportHeight = 20, newIds, 
     <Box flexDirection="column">
       {/* Header */}
       <Box>
-        <Text color="cyan" bold>{'  '}</Text>
-        <Text color="cyan" bold>{'ID'.padEnd(6)}</Text>
-        <Text color="cyan" bold>{'SIZE'.padEnd(10)}</Text>
-        <Text color="cyan" bold>{'TYPE'.padEnd(18)}</Text>
-        <Text color="cyan" bold>{'PATH'.padEnd(35)}</Text>
-        <Text color="cyan" bold>{'PROJECT'.padEnd(18)}</Text>
-        <Text color="cyan" bold>{'AGE'}</Text>
+        <Text color="cyan" bold>
+          {'  '}
+        </Text>
+        <Text color="cyan" bold>
+          {'ID'.padEnd(6)}
+        </Text>
+        <Text color="cyan" bold>
+          {'SIZE'.padEnd(10)}
+        </Text>
+        <Text color="cyan" bold>
+          {'TYPE'.padEnd(18)}
+        </Text>
+        <Text color="cyan" bold>
+          {'PATH'.padEnd(35)}
+        </Text>
+        <Text color="cyan" bold>
+          {'PROJECT'.padEnd(18)}
+        </Text>
+        <Text color="cyan" bold>
+          {'AGE'}
+        </Text>
       </Box>
 
       {/* Removed entries (flash red) */}
@@ -60,18 +80,19 @@ export function EntryTable({ entries, cursorIndex, viewportHeight = 20, newIds, 
 
         return (
           <Box key={entry.id}>
-            <Text color={isCursor ? 'cyan' : undefined}>
-              {isCursor ? '\u25b6 ' : '  '}
-            </Text>
+            <Text color={isCursor ? 'cyan' : undefined}>{isCursor ? '\u25b6 ' : '  '}</Text>
             <Text color={isNew ? 'green' : 'gray'}>{String(entry.id).padEnd(6)}</Text>
             <Text color={isNew ? 'green' : 'yellow'}>{entry.sizeHuman.padEnd(10)}</Text>
             <TypeCell entry={entry} isNew={isNew} />
-            <Text color={isNew ? 'green' : 'white'}>{truncate(entry.displayPath, 35).padEnd(35)}</Text>
-            <Text color={isNew ? 'green' : (entry.project ? 'magenta' : 'gray')}>
+            <Text color={isNew ? 'green' : 'white'}>
+              {truncate(entry.displayPath, 35).padEnd(35)}
+            </Text>
+            <Text color={isNew ? 'green' : entry.project ? 'magenta' : 'gray'}>
               {(entry.project ?? '\u2013').padEnd(18)}
             </Text>
             <Text color={isNew ? 'green' : ageColor(entry)}>
-              {entry.ageHuman}{entry.ageMs >= AGE_STALE_MS ? ' \u26a0' : ''}
+              {entry.ageHuman}
+              {entry.ageMs >= AGE_STALE_MS ? ' \u26a0' : ''}
             </Text>
           </Box>
         );
@@ -81,7 +102,9 @@ export function EntryTable({ entries, cursorIndex, viewportHeight = 20, newIds, 
       {totalEntries > viewportHeight && (
         <Box marginTop={0}>
           <Text color="gray">
-            {' '.repeat(2)}{startIdx > 0 ? '\u25b2' : ' '} showing {startIdx + 1}-{endIdx} of {totalEntries} {endIdx < totalEntries ? '\u25bc' : ' '}
+            {' '.repeat(2)}
+            {startIdx > 0 ? '\u25b2' : ' '} showing {startIdx + 1}-{endIdx} of {totalEntries}{' '}
+            {endIdx < totalEntries ? '\u25bc' : ' '}
           </Text>
         </Box>
       )}
@@ -104,7 +127,9 @@ function TypeCell({ entry, isNew }: { entry: DiskEntry; isNew?: boolean }) {
       <Text color={(theme.artifact as any)[entry.artifactType.color] ?? 'white'}>
         {entry.artifactType.label}
       </Text>
-      <Text color="gray">{paddedSuffix || ' '.repeat(Math.max(0, 18 - entry.artifactType.label.length))}</Text>
+      <Text color="gray">
+        {paddedSuffix || ' '.repeat(Math.max(0, 18 - entry.artifactType.label.length))}
+      </Text>
     </>
   );
 }

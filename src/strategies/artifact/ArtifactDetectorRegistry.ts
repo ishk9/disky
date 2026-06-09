@@ -83,11 +83,19 @@ export class ArtifactDetectorRegistry {
     for (const detector of this.detectors) {
       // Query each detector with only a name (empty path) to see if it matches by name alone
       const probeNames: string[] = [
-        'node_modules', '.next', '.nuxt', 'dist', 'build', 'out',
-        '.turbo', '.cache', 'Pods', 'DerivedData',
+        'node_modules',
+        '.next',
+        '.nuxt',
+        'dist',
+        'build',
+        'out',
+        '.turbo',
+        '.cache',
+        'Pods',
+        'DerivedData',
         // Path-based ones need separate handling; include their target basenames too
-        'caches',       // Gradle
-        'repository',   // Maven
+        'caches', // Gradle
+        'repository', // Maven
         // Note: pnpm (.pnpm-store, store) and bun (cache) are discovered via
         // explicit fs.existsSync checks in DiskScanner.findArtifactPaths() — their
         // basenames are too generic for the find filter and their path-based detectors

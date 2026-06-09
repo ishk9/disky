@@ -15,7 +15,7 @@ export class HeaderRenderer {
     const tagline = 'gobbling up your space...';
     const watchLabel = 'watching · Ctrl+C exit';
 
-    const top    = `┌${'─'.repeat(this.BOX_WIDTH)}┐`;
+    const top = `┌${'─'.repeat(this.BOX_WIDTH)}┐`;
     const bottom = `└${'─'.repeat(this.BOX_WIDTH)}┘`;
 
     // Emoji "🗑️" is a surrogate pair (JS len 2) + zero-width FE0F selector.

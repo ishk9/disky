@@ -71,8 +71,8 @@ export async function resolveEntry(
 /** Checks if an entry's path matches any exclusion path. */
 export function isExcluded(entry: DiskEntry, exclusions: string[]): boolean {
   if (entry.isDockerEntry) return false;
-  return exclusions.some((ex) =>
-    entry.absolutePath === ex || entry.absolutePath.startsWith(ex + path.sep),
+  return exclusions.some(
+    (ex) => entry.absolutePath === ex || entry.absolutePath.startsWith(ex + path.sep),
   );
 }
 

@@ -41,35 +41,64 @@ const VIEW_KEYS: Record<ViewName, string[][]> = {
     ['Enter', 'Confirm removal'],
     ['p', 'Preview (dry run)'],
   ],
-  watch: [
-    ['q/Esc', 'Stop watching'],
-  ],
+  watch: [['q/Esc', 'Stop watching']],
 };
 
 export function HelpOverlay({ currentView, currentEntry }: HelpOverlayProps) {
   const viewKeys = [...(VIEW_KEYS[currentView] || [])];
-  if (currentView === 'detail' && currentEntry && getCleanPolicy(currentEntry.artifactType) === 'locked') {
+  if (
+    currentView === 'detail' &&
+    currentEntry &&
+    getCleanPolicy(currentEntry.artifactType) === 'locked'
+  ) {
     viewKeys.push(['!', 'Force locked entry']);
   }
 
   return (
     <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
-      <Text color="cyan" bold> Keyboard Shortcuts </Text>
+      <Text color="cyan" bold>
+        {' '}
+        Keyboard Shortcuts{' '}
+      </Text>
       <Text> </Text>
 
-      <Text color="yellow" bold> Global</Text>
+      <Text color="yellow" bold>
+        {' '}
+        Global
+      </Text>
       {GLOBAL_KEYS.map(([key, desc], i) => (
-        <Text key={i}>  <Text color="cyan" bold>{key.padEnd(8)}</Text> <Text color="gray">{desc}</Text></Text>
+        <Text key={i}>
+          {' '}
+          <Text color="cyan" bold>
+            {key.padEnd(8)}
+          </Text>{' '}
+          <Text color="gray">{desc}</Text>
+        </Text>
       ))}
 
       <Text> </Text>
-      <Text color="yellow" bold> {currentView.charAt(0).toUpperCase() + currentView.slice(1)} View</Text>
+      <Text color="yellow" bold>
+        {' '}
+        {currentView.charAt(0).toUpperCase() + currentView.slice(1)} View
+      </Text>
       {viewKeys.map(([key, desc], i) => (
-        <Text key={i}>  <Text color="cyan" bold>{key.padEnd(8)}</Text> <Text color="gray">{desc}</Text></Text>
+        <Text key={i}>
+          {' '}
+          <Text color="cyan" bold>
+            {key.padEnd(8)}
+          </Text>{' '}
+          <Text color="gray">{desc}</Text>
+        </Text>
       ))}
 
       <Text> </Text>
-      <Text color="gray">Press <Text color="cyan" bold>?</Text> to close</Text>
+      <Text color="gray">
+        Press{' '}
+        <Text color="cyan" bold>
+          ?
+        </Text>{' '}
+        to close
+      </Text>
     </Box>
   );
 }

@@ -14,7 +14,9 @@ const AUTO_CACHE_LABELS = new Set([
 
 function isSameOrInside(parent: string, candidate: string): boolean {
   const relative = path.relative(parent, candidate);
-  return relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative));
+  return (
+    relative === '' || (!!relative && !relative.startsWith('..') && !path.isAbsolute(relative))
+  );
 }
 
 function inside(candidate: string, parent: string): boolean {
@@ -54,17 +56,24 @@ export function classifyCleanPolicy(
   mode: 'artifact' | 'all',
 ): ArtifactTypeInfo {
   if (mode === 'all') {
-    return withPolicy(artifact, 'inspect', 'All-mode entries are broad directories for inspection.');
+    return withPolicy(
+      artifact,
+      'inspect',
+      'All-mode entries are broad directories for inspection.',
+    );
   }
 
   if (artifact.label === 'unknown' || artifact.label === 'large dir') {
-    return withPolicy(artifact, 'inspect', 'disky does not recognize this as a safe cleanup artifact.');
+    return withPolicy(
+      artifact,
+      'inspect',
+      'disky does not recognize this as a safe cleanup artifact.',
+    );
   }
 
-  const lockedReason =
-    isProtectedPath(absPath)
-      ? 'This path belongs to the running disky package or contains it.'
-      : toolchainReason(absPath);
+  const lockedReason = isProtectedPath(absPath)
+    ? 'This path belongs to the running disky package or contains it.'
+    : toolchainReason(absPath);
 
   if (lockedReason) {
     return withPolicy(artifact, 'locked', lockedReason);
