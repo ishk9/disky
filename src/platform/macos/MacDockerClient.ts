@@ -1,27 +1,25 @@
 import { execSync } from 'child_process';
-
-export interface DockerStats {
-  /** Total bytes consumed by images. */
-  imageSizeBytes: number;
-  /** Number of images (total, including used). */
-  imageCount: number;
-  /** Number of dangling (unused) images. */
-  danglingImageCount: number;
-  /** Number of stopped / exited containers. */
-  stoppedContainerCount: number;
-  /** Aggregate bytes reclaimable from stopped containers + dangling images. */
-  reclaimableBytes: number;
-  /** Human-readable summary, e.g. "3 images, 2 stopped containers". */
-  summary: string;
-}
+import { IDockerClient, DockerStats } from '../IDockerClient.js';
 
 /**
- * Queries Docker for reclaimable disk space from stopped containers and dangling images.
- * Returns null when Docker is not installed or not running.
+ * Queries the Docker CLI for reclaimable disk space from stopped containers and
+ * dangling images. Returns null when Docker is not installed or not running.
  */
-export class DockerScanner {
-  scan(): DockerStats | null {
-    if (!this.isDockerAvailable()) return null;
+export class MacDockerClient implements IDockerClient {
+  isAvailable(): boolean {
+    try {
+      execSync('docker info 2>/dev/null', {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        timeout: 3000,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  stats(): DockerStats | null {
+    if (!this.isAvailable()) return null;
 
     try {
       const imageStats = this.getImageStats();
@@ -47,12 +45,9 @@ export class DockerScanner {
     }
   }
 
-  private isDockerAvailable(): boolean {
+  prune(): boolean {
     try {
-      execSync('docker info 2>/dev/null', {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        timeout: 3000,
-      });
+      execSync('docker system prune -f 2>/dev/null', { stdio: 'pipe' });
       return true;
     } catch {
       return false;
@@ -81,7 +76,7 @@ export class DockerScanner {
         if (!trimmed) continue;
 
         const [sizeStr, repo] = trimmed.split('\t');
-        const bytes = this.parseDockerSize(sizeStr ?? '');
+        const bytes = parseDockerSize(sizeStr ?? '');
         total++;
         totalBytes += bytes;
 
@@ -111,11 +106,11 @@ export class DockerScanner {
         const trimmed = line.trim();
         if (!trimmed) continue;
         stopped++;
-        // docker ps --format "{{.Size}}" returns "virtual size / rw layer size"
-        // Take the RW layer portion (after the slash) when present
+        // docker ps --format "{{.Size}}" returns "virtual size / rw layer size".
+        // Take the RW layer portion (after the slash) when present.
         const parts = trimmed.split('/');
         const sizeStr = (parts[1] ?? parts[0] ?? '').trim();
-        reclaimableBytes += this.parseDockerSize(sizeStr);
+        reclaimableBytes += parseDockerSize(sizeStr);
       }
     } catch {
       // docker ps unavailable
@@ -124,36 +119,30 @@ export class DockerScanner {
     return { stopped, reclaimableBytes };
   }
 
-  /** Parses Docker size strings like "1.5GB", "340MB", "512kB" into bytes. */
-  private parseDockerSize(s: string): number {
-    const match = s.trim().match(/^([\d.]+)\s*(B|kB|KB|MB|GB|TB)?$/i);
-    if (!match) return 0;
-
-    const value = parseFloat(match[1] ?? '0');
-    const unit = (match[2] ?? 'B').toUpperCase();
-
-    const multipliers: Record<string, number> = {
-      B: 1,
-      KB: 1024,
-      MB: 1024 ** 2,
-      GB: 1024 ** 3,
-      TB: 1024 ** 4,
-    };
-
-    return Math.round(value * (multipliers[unit] ?? 1));
-  }
-
   private buildSummary(total: number, dangling: number, stopped: number): string {
     const parts: string[] = [];
-    if (total > 0) {
-      parts.push(`${total} image${total !== 1 ? 's' : ''}`);
-    }
-    if (stopped > 0) {
-      parts.push(`${stopped} stopped container${stopped !== 1 ? 's' : ''}`);
-    }
-    if (dangling > 0) {
-      parts.push(`${dangling} dangling`);
-    }
+    if (total > 0) parts.push(`${total} image${total !== 1 ? 's' : ''}`);
+    if (stopped > 0) parts.push(`${stopped} stopped container${stopped !== 1 ? 's' : ''}`);
+    if (dangling > 0) parts.push(`${dangling} dangling`);
     return parts.join(', ') || 'no reclaimable Docker resources';
   }
+}
+
+/** Parses Docker size strings like "1.5GB", "340MB", "512kB" into bytes. */
+export function parseDockerSize(s: string): number {
+  const match = s.trim().match(/^([\d.]+)\s*(B|kB|KB|MB|GB|TB)?$/i);
+  if (!match) return 0;
+
+  const value = parseFloat(match[1] ?? '0');
+  const unit = (match[2] ?? 'B').toUpperCase();
+
+  const multipliers: Record<string, number> = {
+    B: 1,
+    KB: 1024,
+    MB: 1024 ** 2,
+    GB: 1024 ** 3,
+    TB: 1024 ** 4,
+  };
+
+  return Math.round(value * (multipliers[unit] ?? 1));
 }
