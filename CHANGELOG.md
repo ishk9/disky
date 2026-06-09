@@ -8,6 +8,9 @@ All notable changes to disky are documented here. Format follows
 
 ### Added
 
+- `disky status` — native system dashboard (per-core CPU, memory, disk, battery,
+  GPU, network throughput, top processes) with a 1–100 health score
+  (mole `status` parity).
 - `disky sweep` — reclaim space from system/app caches, logs, and trash
   (mole `clean` parity), with dry-run, exclusions, and audit logging.
 - `disky installer` — find and remove installer files (.dmg/.pkg/.iso) in

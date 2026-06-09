@@ -15,6 +15,7 @@ import { WatchCommand } from './commands/WatchCommand.js';
 import { SweepCommand } from './commands/SweepCommand.js';
 import { InstallerCommand } from './commands/InstallerCommand.js';
 import { AnalyzeCommand } from './commands/AnalyzeCommand.js';
+import { StatusCommand } from './commands/StatusCommand.js';
 import { Colors } from './renderers/Colors.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -160,6 +161,15 @@ program
         .catch(handleError);
     },
   );
+
+// ─── disky status ─────────────────────────────────────────────────────────
+program
+  .command('status')
+  .description('System dashboard — CPU, memory, disk, battery, network, health score')
+  .option('--json', 'Output metrics as JSON (auto-enabled when piped)')
+  .action((opts: { json?: boolean }) => {
+    new StatusCommand({ json: opts.json }).execute().catch(handleError);
+  });
 
 program.parse(process.argv);
 
