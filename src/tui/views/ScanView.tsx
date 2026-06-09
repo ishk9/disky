@@ -4,6 +4,7 @@ import { EntryTable } from '../components/EntryTable.js';
 import { StatusBar } from '../components/StatusBar.js';
 import { useKeyBindings } from '../hooks/useKeyBindings.js';
 import { DiskEntry } from '../../types/index.js';
+import type { ScanProgress } from '../../interfaces/IScanner.js';
 import { formatBytes } from '../../core/DiskScanner.js';
 import { parseMinSize } from '../../commands/ListCommand.js';
 import { ArtCanvas } from '../art/ArtCanvas.js';
@@ -15,6 +16,7 @@ interface ScanViewProps {
   data: DiskEntry[] | null;
   loading: boolean;
   error: string | null;
+  progress?: ScanProgress | null;
   scan: (artifactOnly: boolean) => void;
   // Navigation
   onDetail: (entry: DiskEntry, all: DiskEntry[]) => void;
@@ -33,6 +35,7 @@ export function ScanView({
   data,
   loading,
   error,
+  progress,
   scan,
   onDetail,
   onCleanEntry,
@@ -186,6 +189,15 @@ export function ScanView({
             color="cyan"
           />
           <Text color="cyan"> Scanning your filesystem{'\u2026'}</Text>
+          {progress && (
+            <Text color="gray">
+              {progress.phase === 'size'
+                ? ` sizing ${progress.scanned}/${progress.total} \u00b7 ${progress.found} found`
+                : progress.phase === 'docker'
+                  ? ' checking Docker\u2026'
+                  : ' searching\u2026'}
+            </Text>
+          )}
         </Box>
       )}
 

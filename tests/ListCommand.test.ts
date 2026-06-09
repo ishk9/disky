@@ -48,21 +48,30 @@ describe('ListCommand', () => {
     const scanner = mockScanner([]);
     const cmd = new ListCommand({ artifactOnly: true }, scanner);
     await cmd.execute();
-    expect(scanner.scan).toHaveBeenCalledWith(true, { includeTopOffenders: false });
+    expect(scanner.scan).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({ includeTopOffenders: false }),
+    );
   });
 
   it('passes artifactOnly=false when --all is used', async () => {
     const scanner = mockScanner([]);
     const cmd = new ListCommand({ artifactOnly: false }, scanner);
     await cmd.execute();
-    expect(scanner.scan).toHaveBeenCalledWith(false, { includeTopOffenders: false });
+    expect(scanner.scan).toHaveBeenCalledWith(
+      false,
+      expect.objectContaining({ includeTopOffenders: false }),
+    );
   });
 
   it('keeps top offender data for JSON output', async () => {
     const scanner = mockScanner([]);
     const cmd = new ListCommand({ artifactOnly: true, json: true }, scanner);
     await cmd.execute();
-    expect(scanner.scan).toHaveBeenCalledWith(true, { includeTopOffenders: true });
+    expect(scanner.scan).toHaveBeenCalledWith(
+      true,
+      expect.objectContaining({ includeTopOffenders: true }),
+    );
   });
 
   it('filters entries below minBytes', async () => {

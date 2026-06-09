@@ -38,7 +38,7 @@ function contentLabel(content: MainContent, entry?: DiskEntry): string {
 export function PanelLayout() {
   const app = useApp();
   const { columns, rows } = useTerminalSize();
-  const { loading, data, error, scan } = useScanner();
+  const { loading, data, error, progress, scan } = useScanner();
 
   const [mainContent, setMainContent] = useState<MainContent>('idle');
   const [activePanel, setActivePanel] = useState<number>(1);
@@ -251,6 +251,7 @@ export function PanelLayout() {
               data={data}
               loading={loading}
               error={error}
+              progress={progress}
               scan={scan}
               onDetail={handleDetail}
               onCleanEntry={handleCleanEntry}

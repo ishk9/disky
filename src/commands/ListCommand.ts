@@ -7,6 +7,7 @@ import { HeaderRenderer } from '../renderers/HeaderRenderer.js';
 import { TableRenderer } from '../renderers/TableRenderer.js';
 import { Colors } from '../renderers/Colors.js';
 import { getCleanPolicy, isAutoCleanable } from '../core/CleanPolicy.js';
+import { ProgressReporter } from '../io/ProgressReporter.js';
 
 interface ListCommandOptions {
   /** When false, show all large directories (--all mode). */
@@ -44,9 +45,17 @@ export class ListCommand implements ICommand {
   }
 
   async execute(): Promise<void> {
-    let entries = await this.scanner.scan(this.options.artifactOnly, {
-      includeTopOffenders: this.options.json === true,
-    });
+    // Live spinner while scanning — only when interactive and not piping JSON.
+    const reporter = new ProgressReporter(Boolean(process.stdout.isTTY) && !this.options.json);
+    let entries: DiskEntry[];
+    try {
+      entries = await this.scanner.scan(this.options.artifactOnly, {
+        includeTopOffenders: this.options.json === true,
+        onProgress: reporter.update,
+      });
+    } finally {
+      reporter.done();
+    }
 
     if (this.options.minBytes !== undefined && this.options.minBytes > 0) {
       entries = entries.filter((e) => e.sizeBytes >= this.options.minBytes!);
