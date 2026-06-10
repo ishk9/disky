@@ -33,11 +33,11 @@ function entry(overrides: Partial<DiskEntry>): DiskEntry {
 
 describe('CleanCommand', () => {
   let consoleSpy: ReturnType<typeof vi.spyOn>;
-  let stdoutSpy: ReturnType<typeof vi.spyOn>;
+  let _stdoutSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
     consoleSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-    stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
+    _stdoutSpy = vi.spyOn(process.stdout, 'write').mockImplementation(() => true);
   });
 
   afterEach(() => {
@@ -134,6 +134,26 @@ describe('CleanCommand', () => {
 
       const allOutput = consoleSpy.mock.calls.map((c) => String(c[0])).join('\n');
       expect(allOutput).toContain('Skipping 1 excluded entry');
+    });
+
+    it('reports whitelisted entries count', async () => {
+      const entries = [
+        entry({ id: 1, absolutePath: '/home/user/project/node_modules' }),
+        entry({ id: 2, absolutePath: '/home/user/other/node_modules' }),
+      ];
+      const scanner = mockScanner(entries);
+      const cmd = new CleanCommand(
+        {
+          dryRun: true,
+          whitelistPatterns: ['/home/user/project/node_modules'],
+        },
+        scanner,
+      );
+      await cmd.execute();
+
+      const allOutput = consoleSpy.mock.calls.map((c) => String(c[0])).join('\n');
+      expect(allOutput).toContain('Skipping 1 whitelisted entry');
+      expect(allOutput).toContain('Would remove 1 entry');
     });
 
     it('skips locked entries in bulk mode', async () => {

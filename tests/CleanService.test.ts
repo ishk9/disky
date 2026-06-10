@@ -78,6 +78,36 @@ describe('CleanService', () => {
     new CleanService([cleaner], oplog).clean(makeEntry(), {}, 'sweep');
     expect(oplog.records[0].op).toBe('sweep');
   });
+
+  it('logs dry-run previews without invoking the cleaner', () => {
+    const oplog = new FakeOpLog();
+    let invoked = false;
+    const cleaner: ICleaner = {
+      name: 'x',
+      canClean: () => true,
+      clean: (e) => {
+        invoked = true;
+        return removalSuccess(e);
+      },
+    };
+
+    const result = new CleanService([cleaner], oplog).clean(
+      makeEntry({ absolutePath: '/tmp/preview' }),
+      { dryRun: true },
+      'sweep',
+    );
+
+    expect(invoked).toBe(false);
+    expect(result.success).toBe(true);
+    expect(result.bytesFreed).toBe(0);
+    expect(oplog.records[0]).toMatchObject({
+      op: 'sweep',
+      path: '/tmp/preview',
+      bytes: 0,
+      dryRun: true,
+      success: true,
+    });
+  });
 });
 
 describe('FilesystemCleaner', () => {

@@ -3,6 +3,8 @@ import { DiskEntry } from '../types/index.js';
 export interface CleanOptions {
   /** Allow removal of an entry whose policy is `locked` (targeted only). */
   force?: boolean;
+  /** Preview the operation without invoking the underlying remover. */
+  dryRun?: boolean;
 }
 
 /** Outcome of attempting to remove one entry. */
@@ -46,6 +48,17 @@ export function removalSuccess(entry: DiskEntry): RemovalResult {
     label: entry.artifactType.label,
     displayPath: entry.displayPath,
     bytesFreed: entry.sizeBytes,
+    success: true,
+  };
+}
+
+/** Builds a uniform dry-run success result. */
+export function removalDryRun(entry: DiskEntry): RemovalResult {
+  return {
+    id: entry.id,
+    label: entry.artifactType.label,
+    displayPath: entry.displayPath,
+    bytesFreed: 0,
     success: true,
   };
 }

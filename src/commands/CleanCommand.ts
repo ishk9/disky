@@ -8,6 +8,7 @@ import {
   promptConfirm,
   isExcluded,
   getEffectiveExclusions,
+  isWhitelisted,
 } from '../core/EntryResolver.js';
 import { getCleanPolicy, isAutoCleanable } from '../core/CleanPolicy.js';
 import { CleanService } from '../clean/CleanService.js';
@@ -25,6 +26,8 @@ interface CleanCommandOptions {
   dryRun?: boolean;
   /** CLI-provided paths to exclude from cleanup. */
   excludePaths?: string[];
+  /** CLI-provided patterns to protect during cleanup. */
+  whitelistPatterns?: string[];
   /** Allow targeted removal of locked entries. Never valid for bulk cleanup. */
   force?: boolean;
 }
@@ -94,12 +97,15 @@ export class CleanCommand implements ICommand {
     const policy = getCleanPolicy(entry.artifactType);
     const exclusions = getEffectiveExclusions(this.config, this.options.excludePaths);
     const excluded = isExcluded(entry, exclusions);
+    const whitelisted = isWhitelisted(entry, this.config, this.options.whitelistPatterns);
 
     if (this.options.dryRun) {
       if (excluded) {
         console.log(
           `  ${Colors.prompt('[DRY RUN]')} ${loc} is in your exclusion list — would be skipped`,
         );
+      } else if (whitelisted) {
+        console.log(`  ${Colors.prompt('[DRY RUN]')} ${loc} is whitelisted — would be skipped`);
       } else if (policy === 'locked' && !this.options.force) {
         console.log(`  ${Colors.prompt('[DRY RUN]')} ${loc} is locked — would be skipped`);
         console.log(
@@ -117,6 +123,13 @@ export class CleanCommand implements ICommand {
         );
       }
       console.log(`  ${Colors.dim('No files were modified.')}\n`);
+      return;
+    }
+
+    if (whitelisted) {
+      console.log(
+        `  ${Colors.dim('Whitelisted entry.')} Remove it from disky whitelist before cleaning.\n`,
+      );
       return;
     }
 
@@ -172,12 +185,23 @@ export class CleanCommand implements ICommand {
     const exclusions = getEffectiveExclusions(this.config, this.options.excludePaths);
     const excludedCount = safeEntries.filter((e) => isExcluded(e, exclusions)).length;
     safeEntries = safeEntries.filter((e) => !isExcluded(e, exclusions));
+    const whitelistedCount = safeEntries.filter((e) =>
+      isWhitelisted(e, this.config, this.options.whitelistPatterns),
+    ).length;
+    safeEntries = safeEntries.filter(
+      (e) => !isWhitelisted(e, this.config, this.options.whitelistPatterns),
+    );
 
     process.stdout.write(this.cleanRenderer.render(safeEntries));
 
     if (excludedCount > 0) {
       console.log(
         `  ${Colors.dim(`Skipping ${excludedCount} excluded ${excludedCount === 1 ? 'entry' : 'entries'}`)}\n`,
+      );
+    }
+    if (whitelistedCount > 0) {
+      console.log(
+        `  ${Colors.dim(`Skipping ${whitelistedCount} whitelisted ${whitelistedCount === 1 ? 'entry' : 'entries'}`)}\n`,
       );
     }
     if (lockedCount > 0 || inspectCount > 0) {

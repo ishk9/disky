@@ -3,7 +3,12 @@ import { IScanProvider } from '../scan/IScanProvider.js';
 import { ScanOrchestrator } from '../scan/ScanOrchestrator.js';
 import { ProgressReporter } from '../io/ProgressReporter.js';
 import { Config } from '../core/Config.js';
-import { getEffectiveExclusions, isExcluded, promptConfirm } from '../core/EntryResolver.js';
+import {
+  getEffectiveExclusions,
+  isExcluded,
+  isWhitelisted,
+  promptConfirm,
+} from '../core/EntryResolver.js';
 import { isAutoCleanable, getCleanPolicy } from '../core/CleanPolicy.js';
 import { CleanService } from '../clean/CleanService.js';
 import { TableRenderer } from '../renderers/TableRenderer.js';
@@ -14,6 +19,7 @@ export interface ScanCleanOptions {
   dryRun?: boolean;
   json?: boolean;
   excludePaths?: string[];
+  whitelistPatterns?: string[];
   force?: boolean;
 }
 
@@ -69,14 +75,26 @@ export async function runScanCleanFlow(
   console.log(new TableRenderer().render(entries));
   console.log('');
 
-  const exclusions = getEffectiveExclusions(new Config(), options.excludePaths);
-  const cleanable = entries.filter(isAutoCleanable).filter((e) => !isExcluded(e, exclusions));
+  const configObject = new Config();
+  const exclusions = getEffectiveExclusions(configObject, options.excludePaths);
+  const cleanable = entries
+    .filter(isAutoCleanable)
+    .filter((e) => !isExcluded(e, exclusions))
+    .filter((e) => !isWhitelisted(e, configObject, options.whitelistPatterns));
   const lockedCount = entries.filter((e) => getCleanPolicy(e.artifactType) === 'locked').length;
+  const whitelistedCount = entries.filter((e) =>
+    isWhitelisted(e, configObject, options.whitelistPatterns),
+  ).length;
   const totalBytes = cleanable.reduce((sum, e) => sum + e.sizeBytes, 0);
 
   if (lockedCount > 0) {
     console.log(
       `  ${Colors.dim(`Skipping ${lockedCount} locked ${plural(lockedCount, 'entry', 'entries')}`)}\n`,
+    );
+  }
+  if (whitelistedCount > 0) {
+    console.log(
+      `  ${Colors.dim(`Skipping ${whitelistedCount} whitelisted ${plural(whitelistedCount, 'entry', 'entries')}`)}\n`,
     );
   }
   if (cleanable.length === 0) {
@@ -85,6 +103,9 @@ export async function runScanCleanFlow(
   }
 
   if (options.dryRun) {
+    for (const entry of cleanable) {
+      cleanService.clean(entry, { force: options.force, dryRun: true }, config.op);
+    }
     console.log(
       `  ${Colors.prompt('[DRY RUN]')} Would free ${formatBytes(totalBytes)} across ${cleanable.length} ${plural(cleanable.length, 'entry', 'entries')}`,
     );
