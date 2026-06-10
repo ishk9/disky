@@ -14,11 +14,30 @@ import { ScanView } from '../views/ScanView.js';
 import { DetailView } from '../views/DetailView.js';
 import { CleanView } from '../views/CleanView.js';
 import { WatchView } from '../views/WatchView.js';
+import { StatusView } from '../views/StatusView.js';
+import { AnalyzeView } from '../views/AnalyzeView.js';
+import { SweepView } from '../views/SweepView.js';
+import { HistoryView } from '../views/HistoryView.js';
+import { UninstallView } from '../views/UninstallView.js';
 import { StatusBar } from '../components/StatusBar.js';
 import { HelpOverlay } from '../components/HelpOverlay.js';
 import { isAutoCleanable } from '../../core/CleanPolicy.js';
 
-type MainContent = 'idle' | 'entries' | 'detail' | 'clean' | 'watch';
+type MainContent =
+  | 'idle'
+  | 'entries'
+  | 'detail'
+  | 'clean'
+  | 'watch'
+  | 'status'
+  | 'analyze'
+  | 'sweep'
+  | 'history'
+  | 'uninstall';
+
+export function shouldRouteGlobalAction(content: MainContent, activePanel: number): boolean {
+  return !(content === 'uninstall' && activePanel === 0);
+}
 
 function contentLabel(content: MainContent, entry?: DiskEntry): string {
   switch (content) {
@@ -30,6 +49,16 @@ function contentLabel(content: MainContent, entry?: DiskEntry): string {
       return 'Clean';
     case 'watch':
       return 'Watch (live)';
+    case 'status':
+      return 'Status';
+    case 'analyze':
+      return 'Analyze';
+    case 'sweep':
+      return 'Sweep';
+    case 'history':
+      return 'History';
+    case 'uninstall':
+      return 'Uninstall';
     default:
       return 'Main';
   }
@@ -110,6 +139,26 @@ export function PanelLayout() {
           setMainContent('watch');
           setActivePanel(0);
           break;
+        case 'x':
+          setMainContent('status');
+          setActivePanel(0);
+          break;
+        case 'a':
+          setMainContent('analyze');
+          setActivePanel(0);
+          break;
+        case 'e':
+          setMainContent('sweep');
+          setActivePanel(0);
+          break;
+        case 'h':
+          setMainContent('history');
+          setActivePanel(0);
+          break;
+        case 'u':
+          setMainContent('uninstall');
+          setActivePanel(0);
+          break;
         case 'q':
           if (mainContent !== 'clean') app.exit();
           break;
@@ -159,9 +208,14 @@ export function PanelLayout() {
           case 's':
           case 'c':
           case 'w':
+          case 'x':
+          case 'a':
+          case 'e':
+          case 'h':
+          case 'u':
           case 'q':
           case '?':
-            runAction(key);
+            if (shouldRouteGlobalAction(mainContent, activePanel)) runAction(key);
             break;
         }
       },
@@ -239,6 +293,11 @@ export function PanelLayout() {
                 <Text color="cyan">w</Text> to watch
               </Text>
               <Text color="gray">
+                Press <Text color="cyan">x</Text> for status <Text color="gray">\u00b7</Text>{' '}
+                <Text color="cyan">a</Text> analyze <Text color="gray">\u00b7</Text>{' '}
+                <Text color="cyan">e</Text> sweep
+              </Text>
+              <Text color="gray">
                 Press <Text color="cyan">1\u20134</Text> to focus panels{' '}
                 <Text color="gray">\u00b7</Text> <Text color="cyan">Tab</Text> to cycle{' '}
                 <Text color="gray">\u00b7</Text> <Text color="cyan">?</Text> for help
@@ -287,12 +346,51 @@ export function PanelLayout() {
               viewportHeight={mainViewportH - 4}
             />
           )}
+
+          {mainContent === 'status' && (
+            <StatusView onBack={handleBack} isActive={activePanel === 0} />
+          )}
+
+          {mainContent === 'analyze' && (
+            <AnalyzeView
+              onBack={handleBack}
+              isActive={activePanel === 0}
+              viewportHeight={mainViewportH - 6}
+            />
+          )}
+
+          {mainContent === 'sweep' && (
+            <SweepView
+              onBack={handleBack}
+              isActive={activePanel === 0}
+              viewportHeight={mainViewportH - 6}
+            />
+          )}
+
+          {mainContent === 'history' && (
+            <HistoryView onBack={handleBack} isActive={activePanel === 0} />
+          )}
+
+          {mainContent === 'uninstall' && (
+            <UninstallView onBack={handleBack} isActive={activePanel === 0} />
+          )}
         </Box>
       </Box>
 
       <StatusBar
         left={statusLeft}
-        hints={['1-4 panels', '0/Tab main', 's scan', 'c clean', 'w watch', 'q quit', '? help']}
+        hints={[
+          '1-4 panels',
+          '0/Tab main',
+          's scan',
+          'c clean',
+          'w watch',
+          'x status',
+          'a analyze',
+          'e sweep',
+          'q quit',
+          '? help',
+        ]}
       />
     </Box>
   );

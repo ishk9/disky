@@ -40,7 +40,6 @@ export class WatchCommand implements ICommand {
 
     process.stdout.write('\x1b[?25l'); // hide cursor
 
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       await this.tick();
       await this.sleep(POLL_INTERVAL_MS);

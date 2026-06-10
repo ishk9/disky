@@ -83,7 +83,6 @@ export class TableRenderer implements IRenderer<DiskEntry[]> {
     const typeStr = cleanPolicyLabel(entry);
     const pathStr = entry.displayPath;
     const projectStr = entry.project ?? '–';
-    const ageStr = entry.ageHuman;
 
     const cells = [
       Colors.id(idStr.padEnd(widths.id)),

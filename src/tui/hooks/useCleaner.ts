@@ -18,19 +18,22 @@ export function useCleaner() {
     currentIndex: -1,
   });
 
-  const clean = useCallback(async (entries: DiskEntry[], options: { force?: boolean } = {}) => {
-    const service = new CleanService();
-    setState({ cleaning: true, results: [], currentIndex: 0 });
+  const clean = useCallback(
+    async (entries: DiskEntry[], options: { force?: boolean } = {}, op = 'clean') => {
+      const service = new CleanService();
+      setState({ cleaning: true, results: [], currentIndex: 0 });
 
-    const results: RemovalResult[] = [];
-    for (let i = 0; i < entries.length; i++) {
-      setState((s) => ({ ...s, currentIndex: i }));
-      results.push(service.clean(entries[i], { force: options.force }));
-      setState((s) => ({ ...s, results: [...results] }));
-    }
+      const results: RemovalResult[] = [];
+      for (let i = 0; i < entries.length; i++) {
+        setState((s) => ({ ...s, currentIndex: i }));
+        results.push(service.clean(entries[i], { force: options.force }, op));
+        setState((s) => ({ ...s, results: [...results] }));
+      }
 
-    setState({ cleaning: false, results, currentIndex: -1 });
-  }, []);
+      setState({ cleaning: false, results, currentIndex: -1 });
+    },
+    [],
+  );
 
   const reset = useCallback(() => {
     setState({ cleaning: false, results: [], currentIndex: -1 });

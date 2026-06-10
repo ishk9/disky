@@ -20,6 +20,11 @@ const VIEW_KEYS: Record<ViewName, string[][]> = {
     ['s', 'Scan for disk hogs'],
     ['c', 'Clean disk hogs'],
     ['w', 'Watch mode'],
+    ['x', 'System status'],
+    ['a', 'Analyze large files'],
+    ['e', 'Sweep caches/logs/trash'],
+    ['h', 'Operation history'],
+    ['u', 'Uninstall app preview'],
   ],
   scan: [
     ['\u2191\u2193', 'Navigate entries'],
@@ -42,6 +47,22 @@ const VIEW_KEYS: Record<ViewName, string[][]> = {
     ['p', 'Preview (dry run)'],
   ],
   watch: [['q/Esc', 'Stop watching']],
+  status: [['r', 'Refresh metrics']],
+  analyze: [
+    ['↑↓', 'Navigate files'],
+    ['r', 'Refresh analysis'],
+  ],
+  sweep: [
+    ['↑↓', 'Navigate entries'],
+    ['Space', 'Toggle selection'],
+    ['Enter', 'Confirm removal'],
+  ],
+  history: [['r', 'Refresh history']],
+  uninstall: [
+    ['type', 'Search app'],
+    ['Enter', 'Preview remnants'],
+    ['Backspace', 'Edit search'],
+  ],
 };
 
 export function HelpOverlay({ currentView, currentEntry }: HelpOverlayProps) {

@@ -7,7 +7,7 @@ import { useCleaner } from '../hooks/useCleaner.js';
 import { DiskEntry } from '../../types/index.js';
 import { formatBytes } from '../../core/DiskScanner.js';
 import { Config } from '../../core/Config.js';
-import { isExcluded, getEffectiveExclusions } from '../../core/EntryResolver.js';
+import { isExcluded, getEffectiveExclusions, isWhitelisted } from '../../core/EntryResolver.js';
 import { getCleanPolicy, isAutoCleanable } from '../../core/CleanPolicy.js';
 
 interface CleanViewProps {
@@ -19,6 +19,7 @@ interface CleanViewProps {
   onBack: () => void;
   isActive: boolean;
   viewportHeight?: number;
+  op?: string;
 }
 
 export function CleanView({
@@ -28,6 +29,7 @@ export function CleanView({
   onBack,
   isActive,
   viewportHeight = 12,
+  op = 'clean',
 }: CleanViewProps) {
   const { cleaning, results, clean } = useCleaner();
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -35,21 +37,28 @@ export function CleanView({
   const [showConfirm, setShowConfirm] = useState(false);
   const [dryRun, setDryRun] = useState(false);
   const [exclusions, setExclusions] = useState<string[]>([]);
+  const [config, setConfig] = useState<Config | null>(null);
 
   useEffect(() => {
     const config = new Config();
+    setConfig(config);
     setExclusions(getEffectiveExclusions(config));
   }, []);
 
   const safeEntries = useCallback((): DiskEntry[] => {
     if (targetEntry) {
-      return isAutoCleanable(targetEntry) && !isExcluded(targetEntry, exclusions)
+      return isAutoCleanable(targetEntry) &&
+        !isExcluded(targetEntry, exclusions) &&
+        (!config || !isWhitelisted(targetEntry, config))
         ? [targetEntry]
         : [];
     }
     if (!scanData) return [];
-    return scanData.filter(isAutoCleanable).filter((e) => !isExcluded(e, exclusions));
-  }, [scanData, targetEntry, exclusions]);
+    return scanData
+      .filter(isAutoCleanable)
+      .filter((e) => !isExcluded(e, exclusions))
+      .filter((e) => !config || !isWhitelisted(e, config));
+  }, [scanData, targetEntry, exclusions, config]);
 
   const entries = safeEntries();
   const sourceEntries = targetEntry ? [targetEntry] : (scanData ?? []);
@@ -115,7 +124,11 @@ export function CleanView({
   const handleConfirm = () => {
     setShowConfirm(false);
     if (dryRun) return;
-    clean(entries.filter((e) => selected.has(e.id)));
+    clean(
+      entries.filter((e) => selected.has(e.id)),
+      {},
+      op,
+    );
   };
 
   const selectedEntries = entries.filter((e) => selected.has(e.id));

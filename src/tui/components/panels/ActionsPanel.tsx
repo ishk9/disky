@@ -12,6 +12,11 @@ export const ACTIONS: ActionItem[] = [
   { key: 's', label: 'Scan', content: 'entries' },
   { key: 'c', label: 'Clean', content: 'clean' },
   { key: 'w', label: 'Watch', content: 'watch' },
+  { key: 'x', label: 'Status', content: 'status' },
+  { key: 'a', label: 'Analyze', content: 'analyze' },
+  { key: 'e', label: 'Sweep', content: 'sweep' },
+  { key: 'h', label: 'History', content: 'history' },
+  { key: 'u', label: 'Uninstall', content: 'uninstall' },
   { key: 'q', label: 'Quit', content: '' },
   { key: '?', label: 'Help', content: '' },
 ];

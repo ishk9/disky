@@ -1,6 +1,16 @@
 import { DiskEntry } from '../types/index.js';
 
-export type ViewName = 'dashboard' | 'scan' | 'detail' | 'clean' | 'watch';
+export type ViewName =
+  | 'dashboard'
+  | 'scan'
+  | 'detail'
+  | 'clean'
+  | 'watch'
+  | 'status'
+  | 'analyze'
+  | 'sweep'
+  | 'history'
+  | 'uninstall';
 
 export interface NavigationState {
   view: ViewName;
