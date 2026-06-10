@@ -16,6 +16,14 @@ import { SweepCommand } from './commands/SweepCommand.js';
 import { InstallerCommand } from './commands/InstallerCommand.js';
 import { AnalyzeCommand } from './commands/AnalyzeCommand.js';
 import { StatusCommand } from './commands/StatusCommand.js';
+import { UninstallCommand } from './commands/UninstallCommand.js';
+import { OptimizeCommand } from './commands/OptimizeCommand.js';
+import { HistoryCommand } from './commands/HistoryCommand.js';
+import { WhitelistCommand } from './commands/WhitelistCommand.js';
+import { TouchIdAction, TouchIdCommand } from './commands/TouchIdCommand.js';
+import { CompletionCommand, CompletionShell } from './commands/CompletionCommand.js';
+import { UpdateCommand } from './commands/UpdateCommand.js';
+import type { WhitelistCategory } from './core/Config.js';
 import { Colors } from './renderers/Colors.js';
 import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
@@ -99,14 +107,19 @@ program
   )
   .option('--dry-run', 'Preview what would be deleted without removing anything')
   .option('--exclude <paths...>', 'Paths to skip during cleanup (repeatable)')
+  .option('--whitelist <patterns...>', 'Additional protected patterns for this run')
   .option('--force', 'Allow targeted removal of locked entries')
   .action(
-    (target?: string, cmdOpts?: { dryRun?: boolean; exclude?: string[]; force?: boolean }) => {
+    (
+      target?: string,
+      cmdOpts?: { dryRun?: boolean; exclude?: string[]; whitelist?: string[]; force?: boolean },
+    ) => {
       const opts = resolveTarget(target);
       new CleanCommand({
         ...opts,
         dryRun: cmdOpts?.dryRun,
         excludePaths: cmdOpts?.exclude,
+        whitelistPatterns: cmdOpts?.whitelist,
         force: cmdOpts?.force,
       })
         .execute()
@@ -121,11 +134,19 @@ program
   .option('--dry-run', 'Preview what would be freed without removing anything')
   .option('--json', 'Output results as JSON (auto-enabled when piped)')
   .option('--exclude <paths...>', 'Paths to skip (repeatable)')
-  .action((opts: { dryRun?: boolean; json?: boolean; exclude?: string[] }) => {
-    new SweepCommand({ dryRun: opts.dryRun, json: opts.json, excludePaths: opts.exclude })
-      .execute()
-      .catch(handleError);
-  });
+  .option('--whitelist <patterns...>', 'Additional protected patterns for this run')
+  .action(
+    (opts: { dryRun?: boolean; json?: boolean; exclude?: string[]; whitelist?: string[] }) => {
+      new SweepCommand({
+        dryRun: opts.dryRun,
+        json: opts.json,
+        excludePaths: opts.exclude,
+        whitelistPatterns: opts.whitelist,
+      })
+        .execute()
+        .catch(handleError);
+    },
+  );
 
 // ─── disky installer ──────────────────────────────────────────────────────
 program
@@ -134,11 +155,19 @@ program
   .option('--dry-run', 'Preview what would be removed without deleting anything')
   .option('--json', 'Output results as JSON (auto-enabled when piped)')
   .option('--exclude <paths...>', 'Paths to skip (repeatable)')
-  .action((opts: { dryRun?: boolean; json?: boolean; exclude?: string[] }) => {
-    new InstallerCommand({ dryRun: opts.dryRun, json: opts.json, excludePaths: opts.exclude })
-      .execute()
-      .catch(handleError);
-  });
+  .option('--whitelist <patterns...>', 'Additional protected patterns for this run')
+  .action(
+    (opts: { dryRun?: boolean; json?: boolean; exclude?: string[]; whitelist?: string[] }) => {
+      new InstallerCommand({
+        dryRun: opts.dryRun,
+        json: opts.json,
+        excludePaths: opts.exclude,
+        whitelistPatterns: opts.whitelist,
+      })
+        .execute()
+        .catch(handleError);
+    },
+  );
 
 // ─── disky analyze [path] ─────────────────────────────────────────────────
 program
@@ -169,6 +198,131 @@ program
   .option('--json', 'Output metrics as JSON (auto-enabled when piped)')
   .action((opts: { json?: boolean }) => {
     new StatusCommand({ json: opts.json }).execute().catch(handleError);
+  });
+
+// ─── disky uninstall <app> ───────────────────────────────────────────────
+program
+  .command('uninstall <app>')
+  .description('Preview or remove a macOS app bundle plus associated remnants')
+  .option('--execute', 'Actually remove files after confirmation (default is dry-run)')
+  .option('--dry-run', 'Preview what would be removed (default)')
+  .option('--json', 'Output preview/results as JSON (auto-enabled when piped)')
+  .option('--force', 'Allow force-cleanable remnant entries')
+  .action(
+    (
+      app: string,
+      opts: { execute?: boolean; dryRun?: boolean; json?: boolean; force?: boolean },
+    ) => {
+      new UninstallCommand({
+        query: app,
+        dryRun: opts.execute ? false : (opts.dryRun ?? true),
+        execute: opts.execute,
+        json: opts.json,
+        force: opts.force,
+      })
+        .execute()
+        .catch(handleError);
+    },
+  );
+
+// ─── disky optimize ──────────────────────────────────────────────────────
+program
+  .command('optimize')
+  .description('Preview or run macOS maintenance steps (DNS, Launch Services, caches)')
+  .option('--execute', 'Run selected steps after confirmation (default is dry-run)')
+  .option('--dry-run', 'Preview selected steps (default)')
+  .option('--json', 'Output results as JSON (auto-enabled when piped)')
+  .option('--skip <keys...>', 'Step keys to skip')
+  .action((opts: { execute?: boolean; dryRun?: boolean; json?: boolean; skip?: string[] }) => {
+    new OptimizeCommand({
+      dryRun: opts.execute ? false : (opts.dryRun ?? true),
+      json: opts.json,
+      skip: opts.skip,
+    })
+      .execute()
+      .catch(handleError);
+  });
+
+// ─── disky history ───────────────────────────────────────────────────────
+program
+  .command('history')
+  .description('Show the operation audit log')
+  .option('--json', 'Output history as JSON (auto-enabled when piped)')
+  .option('--limit <n>', 'Limit number of records', parseInt)
+  .action((opts: { json?: boolean; limit?: number }) => {
+    new HistoryCommand({ json: opts.json, limit: opts.limit }).execute().catch(handleError);
+  });
+
+// ─── disky whitelist ────────────────────────────────────────────────────
+program
+  .command('whitelist [action] [category] [pattern]')
+  .description('List/add/remove protected cleanup patterns')
+  .option('--json', 'Output whitelist config as JSON (auto-enabled when piped)')
+  .action(
+    (
+      action = 'list',
+      category: string | undefined,
+      pattern: string | undefined,
+      opts: { json?: boolean },
+    ) => {
+      if (!['list', 'add', 'remove'].includes(action)) {
+        console.error(`\n  ${Colors.error('Invalid whitelist action. Use: list, add, remove.\n')}`);
+        process.exit(1);
+      }
+      new WhitelistCommand({
+        action: action as 'list' | 'add' | 'remove',
+        category: category as WhitelistCategory | undefined,
+        pattern,
+        json: opts.json,
+      })
+        .execute()
+        .catch(handleError);
+    },
+  );
+
+// ─── disky touchid enable|disable ───────────────────────────────────────
+program
+  .command('touchid <action>')
+  .description('Enable or disable Touch ID for sudo via /etc/pam.d/sudo_local')
+  .option('--dry-run', 'Preview the sudo_local change without writing')
+  .option('--json', 'Output result as JSON')
+  .action((action: string, opts: { dryRun?: boolean; json?: boolean }) => {
+    if (!['enable', 'disable'].includes(action)) {
+      console.error(`\n  ${Colors.error('Invalid touchid action. Use: enable or disable.\n')}`);
+      process.exit(1);
+    }
+    new TouchIdCommand({
+      action: action as TouchIdAction,
+      dryRun: opts.dryRun,
+      json: opts.json,
+    })
+      .execute()
+      .catch(handleError);
+  });
+
+// ─── disky completion ───────────────────────────────────────────────────
+program
+  .command('completion <shell>')
+  .description('Print shell completion script for zsh, bash, or fish')
+  .action((shell: string) => {
+    if (!['zsh', 'bash', 'fish'].includes(shell)) {
+      console.error(`\n  ${Colors.error('Invalid shell. Use: zsh, bash, or fish.\n')}`);
+      process.exit(1);
+    }
+    new CompletionCommand({ shell: shell as CompletionShell }).execute().catch(handleError);
+  });
+
+// ─── disky update ───────────────────────────────────────────────────────
+program
+  .command('update')
+  .description('Update disky through npm')
+  .option('--nightly', 'Install @ishk9/disky@next instead of @latest')
+  .option('--dry-run', 'Print the npm command without running it')
+  .option('--json', 'Output result as JSON')
+  .action((opts: { nightly?: boolean; dryRun?: boolean; json?: boolean }) => {
+    new UpdateCommand({ nightly: opts.nightly, dryRun: opts.dryRun, json: opts.json })
+      .execute()
+      .catch(handleError);
   });
 
 program.parse(process.argv);
