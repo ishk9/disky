@@ -20,6 +20,7 @@ export type EntryCategory =
   | 'trash'
   | 'installer'
   | 'large-file'
+  | 'app'
   | 'docker';
 
 /** A short, human-meaningful tag computed from an entry (e.g. "stale 90d+"). */

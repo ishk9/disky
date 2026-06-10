@@ -6,3 +6,5 @@
 export type { IDirSizer, ChildSize } from './IDirSizer.js';
 export type { IFileFinder, FindDirsOptions, LargeDirsOptions } from './IFileFinder.js';
 export type { IDockerClient, DockerStats } from './IDockerClient.js';
+export type { IAppRegistry, InstalledApp, AppRemnant } from './IAppRegistry.js';
+export type { ISudoRunner } from './ISudoRunner.js';
