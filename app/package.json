@@ -1,0 +1,22 @@
+{
+  "name": "disky-app",
+  "productName": "Disky",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Find and clear what's eating your disk",
+  "author": "Ishaan",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p . && tsc -p tsconfig.renderer.json && node -e \"require('fs').cpSync('src/renderer','dist/renderer',{recursive:true,filter:f=>!f.endsWith('.ts')})\"",
+    "start": "npm run build && electron .",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
+    "dist": "npm run build && electron-builder"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "typescript": "^5.9.3"
+  }
+}
