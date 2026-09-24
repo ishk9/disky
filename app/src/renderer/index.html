@@ -12,107 +12,32 @@
     <script src="renderer.js" defer></script>
   </head>
   <body>
-    <header class="titlebar">
-      <span class="brand"><span class="brand-mark" aria-hidden="true"></span>Disky</span>
-    </header>
-
-    <main id="app">
-      <!-- Welcome -->
-      <section id="view-welcome" class="view view-center" aria-labelledby="welcome-title">
-        <div class="disk" id="disk" hidden>
-          <div class="disk-bar" role="img" id="disk-bar"><span id="disk-used"></span></div>
-          <p class="disk-label" id="disk-label"></p>
+    <div class="window">
+      <aside class="sidebar">
+        <nav class="nav" id="nav" aria-label="Sections"></nav>
+        <div class="sidebar-foot" id="disk-foot" hidden>
+          <div class="meter" aria-hidden="true"><span id="disk-foot-bar"></span></div>
+          <p id="disk-foot-label"></p>
         </div>
-        <h1 id="welcome-title" class="display">Let’s free up some space.</h1>
-        <p class="lede">
-          Disky looks through your files for things you probably don’t need: old downloads, huge
-          files, app leftovers and old phone backups.
-        </p>
-        <button class="btn btn-primary btn-large" id="scan-btn" type="button"></button>
-        <p class="reassure">
-          <svg aria-hidden="true" viewBox="0 0 16 16"><path d="M8 1.5 2.5 3.8v3.6c0 3.2 2.3 6.1 5.5 7.1 3.2-1 5.5-3.9 5.5-7.1V3.8z" /><path d="m5.6 8 1.7 1.7 3.2-3.4" /></svg>
-          <span>Nothing is removed without your OK, and everything goes to the <span data-trash-name>Trash</span> first.</span>
-        </p>
-      </section>
+      </aside>
 
-      <!-- Scanning -->
-      <section id="view-scanning" class="view view-center" aria-labelledby="scanning-title" hidden>
-        <div class="spinner" aria-hidden="true"></div>
-        <h1 id="scanning-title" class="title">Looking through your files…</h1>
-        <p class="lede">This usually takes under a minute.</p>
-        <ol class="steps" id="steps"></ol>
-        <p class="visually-hidden" aria-live="polite" id="scan-status"></p>
-        <button class="btn btn-ghost" id="cancel-btn" type="button">Cancel</button>
-      </section>
+      <div class="main">
+        <header class="toolbar">
+          <h1 class="toolbar-title" id="page-title">Overview</h1>
+          <div class="toolbar-actions" id="toolbar-actions"></div>
+          <div class="toolbar-progress" id="toolbar-progress" hidden></div>
+        </header>
 
-      <!-- Results -->
-      <section id="view-results" class="view view-results" aria-labelledby="results-title" hidden>
-        <div class="notice" id="permission-notice" role="status" hidden>
-          <svg aria-hidden="true" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.5" /><path d="M8 4.8v3.6M8 11h.01" /></svg>
-          <p id="permission-text"></p>
-          <button class="btn btn-small" id="permission-btn" type="button">Open Settings</button>
-        </div>
+        <main class="content" id="content" tabindex="-1"></main>
 
-        <div class="hero" id="hero">
-          <p class="eyebrow" id="results-title">Ready to clear</p>
-          <p class="hero-number" id="hero-number">0 GB</p>
-          <p class="hero-sub" id="hero-sub"></p>
-        </div>
-
-        <div class="tidy" id="tidy" hidden>
-          <svg aria-hidden="true" viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" /><path d="m15 24.5 6 6 12-13" /></svg>
-          <h1 class="title">Your computer looks tidy.</h1>
-          <p class="lede">We didn’t find anything worth clearing right now.</p>
-        </div>
-
-        <ul class="categories" id="categories"></ul>
-      </section>
-
-      <!-- Cleaning -->
-      <section id="view-cleaning" class="view view-center" aria-labelledby="cleaning-title" hidden>
-        <div class="progress" aria-hidden="true"><span id="clean-bar"></span></div>
-        <h1 id="cleaning-title" class="title" aria-live="polite">Moving to the <span data-trash-name>Trash</span>…</h1>
-        <p class="lede clean-current" id="clean-current"></p>
-      </section>
-
-      <!-- Done -->
-      <section id="view-done" class="view view-center" aria-labelledby="done-title" hidden>
-        <svg class="done-mark" aria-hidden="true" viewBox="0 0 48 48"><circle cx="24" cy="24" r="21" /><path d="m15 24.5 6 6 12-13" /></svg>
-        <h1 id="done-title" class="display"></h1>
-        <p class="lede" id="done-sub"></p>
-        <div class="failures" id="failures" hidden>
-          <h2 class="failures-title" id="failures-title"></h2>
-          <ul id="failure-list"></ul>
-        </div>
-        <div class="actions">
-          <button class="btn btn-secondary" id="open-trash-btn" type="button">Open <span data-trash-name>Trash</span></button>
-          <button class="btn btn-primary" id="rescan-btn" type="button">Scan again</button>
-        </div>
-      </section>
-
-      <!-- Error -->
-      <section id="view-error" class="view view-center" aria-labelledby="error-title" hidden>
-        <h1 id="error-title" class="title">Something went wrong while scanning.</h1>
-        <p class="lede">Nothing was changed. Try again, and if it keeps happening, restart Disky.</p>
-        <button class="btn btn-primary" id="retry-btn" type="button">Try again</button>
-      </section>
-    </main>
-
-    <footer class="actionbar" id="actionbar" hidden>
-      <p id="selection-summary" aria-live="polite"></p>
-      <div class="actions">
-        <button class="btn btn-ghost" id="rescan-results-btn" type="button">Scan again</button>
-        <button class="btn btn-primary" id="clean-btn" type="button">Move to <span data-trash-name>Trash</span>…</button>
+        <footer class="selection-bar" id="selection-bar" hidden>
+          <p id="selection-summary" aria-live="polite"></p>
+          <button class="button button-primary" id="clean-btn" type="button"></button>
+        </footer>
       </div>
-    </footer>
+    </div>
 
-    <dialog id="confirm" aria-labelledby="confirm-title" aria-describedby="confirm-body">
-      <h2 id="confirm-title"></h2>
-      <p id="confirm-body"></p>
-      <div class="actions">
-        <button class="btn btn-ghost" id="confirm-cancel" type="button">Go back</button>
-        <button class="btn btn-primary" id="confirm-ok" type="button" autofocus>Move to <span data-trash-name>Trash</span></button>
-      </div>
-    </dialog>
+    <dialog class="sheet" id="sheet" aria-labelledby="sheet-title"></dialog>
+    <p class="visually-hidden" id="announcer" aria-live="polite"></p>
   </body>
 </html>

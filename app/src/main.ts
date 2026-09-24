@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, nativeTheme, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, IpcMainInvokeEvent, nativeTheme, shell, systemPreferences } from 'electron';
 import { execFile } from 'child_process';
 import { statfs } from 'fs/promises';
 import * as os from 'os';
@@ -15,16 +15,25 @@ const PRIVACY_PANES = {
 };
 
 function createWindow(): void {
+  const mac = process.platform === 'darwin';
   const win = new BrowserWindow({
-    width: 980,
-    height: 740,
-    minWidth: 720,
-    minHeight: 560,
+    width: 1040,
+    height: 700,
+    minWidth: 820,
+    minHeight: 540,
     show: false,
     title: 'Disky',
-    backgroundColor: nativeTheme.shouldUseDarkColors ? '#161618' : '#f6f6f4',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
     autoHideMenuBar: true,
+    // macOS: translucent sidebar under a unified toolbar, like Finder and System Settings.
+    ...(mac
+      ? {
+          titleBarStyle: 'hiddenInset' as const,
+          trafficLightPosition: { x: 18, y: 18 },
+          vibrancy: 'sidebar' as const,
+          visualEffectState: 'followWindow' as const,
+          backgroundColor: '#00000000',
+        }
+      : { backgroundColor: nativeTheme.shouldUseDarkColors ? '#202020' : '#f3f3f3' }),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       sandbox: true,
@@ -35,7 +44,21 @@ function createWindow(): void {
   win.once('ready-to-show', () => win.show());
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }));
   win.webContents.on('will-navigate', (e) => e.preventDefault());
+  win.webContents.on('did-finish-load', () => {
+    const accent = systemAccent();
+    if (accent) win.webContents.insertCSS(`:root { --system-accent: ${accent}; }`);
+  });
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
+}
+
+/** The user's chosen accent colour (System Settings › Appearance), so Disky matches their Mac or PC. */
+function systemAccent(): string | null {
+  try {
+    const hex = systemPreferences.getAccentColor(); // RRGGBBAA
+    return /^[0-9a-f]{6}/i.test(hex) ? `#${hex.slice(0, 6)}` : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Progress events are best-effort: the window may have been closed mid-scan. */
