@@ -1,0 +1,77 @@
+{
+  "name": "disky-app",
+  "productName": "Disky",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Find and clear what's eating your disk",
+  "author": "Ishaan",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc -p . && tsc -p tsconfig.renderer.json && node -e \"require('fs').cpSync('src/renderer','dist/renderer',{recursive:true,filter:f=>!f.endsWith('.ts')})\"",
+    "start": "npm run build && electron .",
+    "test": "npm run build && node --test \"dist/**/*.test.js\"",
+    "dist": "npm run build && electron-builder"
+  },
+  "devDependencies": {
+    "@types/node": "^24.13.6",
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
+    "typescript": "^5.9.3"
+  },
+  "build": {
+    "appId": "com.ishk9.disky",
+    "productName": "Disky",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "dist/**/*",
+      "!dist/**/*.test.js",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.utilities",
+      "identity": "-",
+      "hardenedRuntime": false,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "extendInfo": {
+        "NSDesktopFolderUsageDescription": "Disky looks for large files on your Desktop so you can decide what to remove.",
+        "NSDocumentsFolderUsageDescription": "Disky looks for large files in Documents so you can decide what to remove.",
+        "NSDownloadsFolderUsageDescription": "Disky looks for old and large downloads so you can decide what to remove."
+      }
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false
+    },
+    "electronFuses": {
+      "runAsNode": false,
+      "enableCookieEncryption": true,
+      "enableNodeOptionsEnvironmentVariable": false,
+      "enableNodeCliInspectArguments": false,
+      "enableEmbeddedAsarIntegrityValidation": true,
+      "onlyLoadAppFromAsar": true
+    }
+  }
+}

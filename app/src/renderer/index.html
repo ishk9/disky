@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; object-src 'none'; base-uri 'none'; form-action 'none'"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <title>Disky</title>
+    <link rel="stylesheet" href="styles.css" />
+    <script src="renderer.js" defer></script>
+  </head>
+  <body>
+    <div class="window">
+      <aside class="sidebar">
+        <nav class="nav" id="nav" aria-label="Sections"></nav>
+        <div class="sidebar-foot" id="disk-foot" hidden>
+          <div class="meter" aria-hidden="true"><span id="disk-foot-bar"></span></div>
+          <p id="disk-foot-label"></p>
+        </div>
+      </aside>
+
+      <div class="main">
+        <header class="toolbar">
+          <h1 class="toolbar-title" id="page-title">Overview</h1>
+          <div class="toolbar-actions" id="toolbar-actions"></div>
+          <div class="toolbar-progress" id="toolbar-progress" hidden></div>
+        </header>
+
+        <main class="content" id="content" tabindex="-1"></main>
+
+        <footer class="selection-bar" id="selection-bar" hidden>
+          <p id="selection-summary" aria-live="polite"></p>
+          <button class="button button-primary" id="clean-btn" type="button"></button>
+        </footer>
+      </div>
+    </div>
+
+    <dialog class="sheet" id="sheet" aria-labelledby="sheet-title"></dialog>
+    <p class="visually-hidden" id="announcer" aria-live="polite"></p>
+  </body>
+</html>
