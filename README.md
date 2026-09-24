@@ -41,7 +41,7 @@ npm link
 | `disky <id>` | Show detailed breakdown for a specific entry by ID |
 | `disky <path>` | Show detailed breakdown for a specific directory by path |
 | `disky clean` | Interactively remove all detected hogs |
-| `disky clean <id>` | Remove a specific entry by ID (interactive confirm) |
+| `disky clean <id...>` | Remove one or more entries by ID, e.g. `disky clean 1 2 5` (confirm each) |
 | `disky clean <path>` | Remove a specific directory by path (interactive confirm) |
 | `disky clean --dry-run` | Preview what would be deleted without removing anything |
 | `disky clean --exclude <path>` | Skip specific paths during cleanup |

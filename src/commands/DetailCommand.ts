@@ -55,34 +55,19 @@ export class DetailCommand implements ICommand {
   }
 
   private async resolveEntry(): Promise<DiskEntry | null> {
-    // 1. Try cache first (fast path)
+    // IDs only mean something relative to the last `disky scan`, so never
+    // overwrite the cache here — the scanner's raw IDs differ from the sorted ones
     if (this.options.id !== undefined) {
       const cached = this.cache.findById(this.options.id);
-      if (cached) {
-        // Re-scan to get full entry with top offenders
-        const entries = await this.scanner.scan(true);
-        this.cache.save(entries);
-        return entries.find((e) => e.absolutePath === cached.absolutePath) ?? null;
-      }
+      if (!cached) return null;
+      // Re-scan to get full entry with top offenders
+      const entries = await this.scanner.scan(true);
+      const entry = entries.find((e) => e.absolutePath === cached.absolutePath);
+      if (entry) entry.id = cached.id;
+      return entry ?? null;
     }
 
-    if (this.options.targetPath) {
-      const absPath = this.expandPath(this.options.targetPath);
-      const cached = this.cache.findByPath(absPath);
-      if (cached) {
-        const entries = await this.scanner.scan(true);
-        this.cache.save(entries);
-        return entries.find((e) => e.absolutePath === absPath) ?? null;
-      }
-    }
-
-    // 2. Fall back to a live scan
     const entries = await this.scanner.scan(true);
-    this.cache.save(entries);
-
-    if (this.options.id !== undefined) {
-      return entries.find((e) => e.id === this.options.id) ?? null;
-    }
 
     if (this.options.targetPath) {
       const absPath = this.expandPath(this.options.targetPath);

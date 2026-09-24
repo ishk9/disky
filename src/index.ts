@@ -69,15 +69,25 @@ program
     new WatchCommand().execute().catch(handleError);
   });
 
-// ─── disky clean [id|path] ────────────────────────────────────────────────
+// ─── disky clean [id|path...] ─────────────────────────────────────────────
 program
-  .command('clean [target]')
-  .description('Remove disk hogs. Pass an ID or path to target a specific entry; omit for interactive bulk cleanup')
+  .command('clean [targets...]')
+  .description('Remove disk hogs. Pass one or more IDs or paths to target specific entries; omit for interactive bulk cleanup')
   .option('--dry-run', 'Preview what would be deleted without removing anything')
   .option('--exclude <paths...>', 'Paths to skip during cleanup (repeatable)')
-  .action((target?: string, cmdOpts?: { dryRun?: boolean; exclude?: string[] }) => {
-    const opts = resolveTarget(target);
-    new CleanCommand({ ...opts, dryRun: cmdOpts?.dryRun, excludePaths: cmdOpts?.exclude }).execute().catch(handleError);
+  .action(async (targets: string[], cmdOpts?: { dryRun?: boolean; exclude?: string[] }) => {
+    const shared = { dryRun: cmdOpts?.dryRun, excludePaths: cmdOpts?.exclude };
+    try {
+      if (targets.length === 0) {
+        await new CleanCommand(shared).execute();
+      }
+      // Sequential so each confirm prompt gets its own turn on stdin
+      for (const target of targets) {
+        await new CleanCommand({ ...resolveTarget(target), ...shared }).execute();
+      }
+    } catch (err) {
+      handleError(err);
+    }
   });
 
 program.parse(process.argv);
