@@ -11,7 +11,7 @@ const COMMANDS = [
   { cmd: 'disky <id>',              desc: 'Detailed breakdown for a specific entry' },
   { cmd: 'disky <path>',            desc: 'Detailed breakdown for a directory path' },
   { cmd: 'disky clean',             desc: 'Interactively remove all detected hogs' },
-  { cmd: 'disky clean <id>',        desc: 'Remove a specific entry by ID' },
+  { cmd: 'disky clean <id...>',     desc: 'Remove one or more entries by ID' },
   { cmd: 'disky clean <path>',      desc: 'Remove a specific directory by path' },
   { cmd: 'disky clean --dry-run',   desc: 'Preview what would be deleted without removing anything' },
   { cmd: 'disky clean --exclude',   desc: 'Skip specific paths during cleanup' },
