@@ -8,8 +8,6 @@ const trashName = isMac ? 'Trash' : 'Recycle Bin';
 interface CategoryInfo {
   title: string;
   description: string;
-  /** Pre-ticked: safe to clear, apps rebuild it. */
-  safe: boolean;
   caution?: string;
   icon: string;
 }
@@ -19,40 +17,34 @@ const CATEGORIES: Record<CategoryId, CategoryInfo> = {
   large: {
     title: 'Large files',
     description: 'Files over 500 MB in your folders.',
-    safe: false,
     caution: 'These are your own files. Check you don’t need them before moving them.',
     icon: '<rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M8 8h8M8 12h8M8 16h5"/>',
   },
   downloads: {
     title: 'Old downloads',
     description: 'Things in Downloads you haven’t touched in 3 months.',
-    safe: false,
     caution: 'Installers and zips are usually safe to remove. Look over documents first.',
     icon: '<path d="M12 3.5v11m0 0-4.5-4.5M12 14.5l4.5-4.5"/><path d="M4 16.5v2A2.5 2.5 0 0 0 6.5 21h11a2.5 2.5 0 0 0 2.5-2.5v-2"/>',
   },
   caches: {
     title: 'App & browser caches',
     description: 'Temporary data apps rebuild on their own. Safe to clear.',
-    safe: true,
     icon: '<ellipse cx="12" cy="6" rx="7.5" ry="3"/><path d="M4.5 6v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3V6"/><path d="M4.5 12v6c0 1.7 3.4 3 7.5 3s7.5-1.3 7.5-3v-6"/>',
   },
   temp: {
     title: 'Temporary files',
     description: 'Leftovers apps no longer need.',
-    safe: true,
     icon: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
   },
   backups: {
     title: 'iPhone & iPad backups',
     description: 'Copies of your devices saved on this computer.',
-    safe: false,
     caution: 'Keep the newest backup of any device you still use.',
     icon: '<rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18.5h2"/>',
   },
   trash: {
     title: trashName,
     description: 'Already deleted, but still taking up space until you empty it.',
-    safe: false,
     icon: '<path d="M4 6.5h16M9.5 6.5V4.5h5v2M6.5 6.5l1 13a1.5 1.5 0 0 0 1.5 1.4h6a1.5 1.5 0 0 0 1.5-1.4l1-13"/>',
   },
 };
@@ -176,6 +168,7 @@ function renderSteps(current: CategoryId | null): void {
 }
 
 async function startScan(): Promise<void> {
+  $('error-title').textContent = 'Something went wrong while scanning.';
   renderSteps(SCAN_STEPS[0]);
   show('scanning');
   try {
@@ -193,7 +186,7 @@ async function startScan(): Promise<void> {
       for (const item of c.items) {
         itemsById.set(item.id, item);
         if (c.id === 'caches') cacheIds.add(item.id);
-        if (CATEGORIES[c.id].safe) selected.add(item.id);
+        if (c.preselect) selected.add(item.id);
       }
     }
     renderResults();
@@ -229,8 +222,9 @@ function renderResults(): void {
   const notice = $('permission-notice');
   notice.hidden = !r.needsFullDiskAccess && denied.length === 0;
   if (denied.length) {
-    $('permission-text').textContent = `Disky wasn’t allowed to look in ${denied.join(', ')}. Allow access in System Settings, then reopen Disky.`;
-    $('permission-btn').dataset.pane = 'files';
+    const alsoFda = r.needsFullDiskAccess ? ' Full Disk Access also lets it include your Trash and iPhone backups.' : '';
+    $('permission-text').textContent = `Disky wasn’t allowed to look in ${denied.join(', ')}. Allow access in System Settings, then reopen Disky.${alsoFda}`;
+    $('permission-btn').dataset.pane = r.needsFullDiskAccess ? 'fullDisk' : 'files';
   } else if (r.needsFullDiskAccess) {
     $('permission-text').textContent = 'Give Disky Full Disk Access to include your Trash and iPhone backups. After allowing it, reopen Disky.';
     $('permission-btn').dataset.pane = 'fullDisk';
@@ -411,7 +405,16 @@ async function clean(): Promise<void> {
   $('clean-current').textContent = '';
   show('cleaning');
 
-  const outcomes = await api.trash(ids);
+  let outcomes: TrashOutcome[];
+  try {
+    outcomes = await api.trash(ids);
+  } catch {
+    // Some items may have moved before the failure; a fresh scan shows the truth.
+    $('error-title').textContent = `Something went wrong while moving files to the ${trashName}.`;
+    result = null;
+    show('error');
+    return;
+  }
   const moved = outcomes.filter((o) => o.ok);
   const failed = outcomes.filter((o) => !o.ok);
   const freed = moved.reduce((sum, o) => sum + (itemsById.get(o.id)?.bytes ?? 0), 0);

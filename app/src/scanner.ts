@@ -10,11 +10,14 @@ const MB = 1024 * 1024;
 /** Scanner item before the path is stripped for the renderer. */
 export interface FoundItem extends ScanItem {
   path: string;
+  /** File identity at scan time, so we never trash something that replaced it. */
+  ino: number;
 }
 
 export interface FoundCategory {
   id: CategoryId;
   bytes: number | null;
+  preselect: boolean;
   items: FoundItem[];
 }
 
@@ -42,11 +45,18 @@ type Ctx = Required<Omit<ScanOptions, 'signal' | 'onProgress' | 'platform'>> & {
   limit: <T>(fn: () => Promise<T>) => Promise<T>;
 };
 
-// Opening a package (app, photo library) and trashing a file inside it breaks it.
+// Folders that are really one document (apps, photo libraries, VMs, projects).
+// Trashing a file from inside one breaks the whole thing.
 const PACKAGE_EXT = new Set([
-  '.app', '.photoslibrary', '.musiclibrary', '.imovielibrary', '.fcpbundle',
-  '.bundle', '.pkg', '.tvlibrary', '.photolibrary', '.aplibrary',
+  '.app', '.photoslibrary', '.musiclibrary', '.imovielibrary', '.fcpbundle', '.bundle', '.pkg',
+  '.tvlibrary', '.photolibrary', '.aplibrary', '.pvm', '.vmwarevm', '.utm', '.logicx', '.band',
+  '.sparsebundle', '.xcarchive', '.dvdmedia', '.lrdata', '.lrlibrary',
 ]);
+
+/** Only caches and temp files are safe enough to tick for the user. */
+const PRESELECT = new Set<CategoryId>(['caches', 'temp']);
+
+let generation = 0;
 
 // ─── Sizing ─────────────────────────────────────────────────────────────────
 
@@ -103,14 +113,21 @@ async function safeReaddir(p: string, ctx: Ctx) {
   }
 }
 
-/** Total size of a file or folder. Never follows links; unreadable parts count as 0. */
-async function sizeOf(p: string, ctx: Ctx, st?: Stats | null): Promise<number> {
+/** When a file last changed or arrived here (AirDrop and unzip keep old modified dates). */
+const touched = (st: Stats) => Math.max(st.mtimeMs, st.birthtimeMs);
+
+/**
+ * Total size of a file or folder. Never follows links; unreadable parts count as 0.
+ * `seen.newest` ends up as the most recent change anywhere inside.
+ */
+async function sizeOf(p: string, ctx: Ctx, st?: Stats | null, seen = { newest: 0 }): Promise<number> {
   ctx.signal?.throwIfAborted();
   st ??= await safeLstat(p, ctx);
   if (!st || st.isSymbolicLink()) return 0;
+  seen.newest = Math.max(seen.newest, touched(st));
   if (!st.isDirectory()) return onDisk(st, ctx.win);
   const entries = await safeReaddir(p, ctx);
-  const sizes = await mapBatched(entries, (e) => sizeOf(path.join(p, e.name), ctx));
+  const sizes = await mapBatched(entries, (e) => sizeOf(path.join(p, e.name), ctx, undefined, seen));
   return sizes.reduce((a, b) => a + b, onDisk(st, ctx.win));
 }
 
@@ -130,24 +147,30 @@ function item(p: string, st: Stats, bytes: number, ctx: Ctx, name = path.basenam
     path: p,
     location: friendlyLocation(p, ctx.home),
     bytes,
-    modified: st.mtimeMs,
+    modified: touched(st),
+    ino: st.ino,
   };
 }
 
+interface ChildOptions {
+  keep?: (name: string, st: Stats) => boolean;
+  minBytes?: number;
+  /** Skip items with anything inside changed at or after this time. */
+  untouchedBefore?: number;
+}
+
 /** Sizes each direct child of `dir` as one item. */
-async function childrenAsItems(
-  dir: string,
-  ctx: Ctx,
-  keep: (name: string, st: Stats) => boolean = () => true,
-  minBytes = 0,
-): Promise<FoundItem[]> {
+async function childrenAsItems(dir: string, ctx: Ctx, opts: ChildOptions = {}): Promise<FoundItem[]> {
+  const { keep = () => true, minBytes = 0, untouchedBefore = Infinity } = opts;
   const entries = await safeReaddir(dir, ctx);
   const found = await mapBatched(entries, async (e) => {
     const p = path.join(dir, e.name);
     const st = await safeLstat(p, ctx);
     if (!st || st.isSymbolicLink() || !keep(e.name, st)) return null;
-    const bytes = await sizeOf(p, ctx, st);
-    return bytes >= minBytes ? item(p, st, bytes, ctx) : null;
+    const seen = { newest: 0 };
+    const bytes = await sizeOf(p, ctx, st, seen);
+    if (bytes < minBytes || seen.newest >= untouchedBefore) return null;
+    return item(p, st, bytes, ctx);
   });
   return found.filter((i): i is FoundItem => i !== null);
 }
@@ -180,11 +203,9 @@ const isHidden = (name: string) => name.startsWith('.') || name === 'desktop.ini
 
 async function oldDownloads(ctx: Ctx): Promise<FoundItem[]> {
   const cutoff = ctx.now - 90 * DAY;
-  return childrenAsItems(
-    path.join(ctx.home, 'Downloads'),
-    ctx,
-    (name, st) => !isHidden(name) && st.mtimeMs < cutoff,
-  );
+  return childrenAsItems(path.join(ctx.home, 'Downloads'), ctx, {
+    keep: (name, st) => !isHidden(name) && touched(st) < cutoff,
+  });
 }
 
 async function largeFiles(ctx: Ctx, alreadyListed: Set<string>): Promise<FoundItem[]> {
@@ -195,8 +216,10 @@ async function largeFiles(ctx: Ctx, alreadyListed: Set<string>): Promise<FoundIt
     path.join(home, win ? 'AppData' : 'Library'),
     path.join(home, 'Apple'), // Windows iTunes backups, reported separately
   ]);
+  const winCloud = (name: string) =>
+    name.startsWith('OneDrive') || name === 'iCloudDrive' || name === 'Dropbox' || name === 'Google Drive';
   const skipName = (name: string) =>
-    isHidden(name) || PACKAGE_EXT.has(path.extname(name).toLowerCase()) || (win && name.startsWith('OneDrive'));
+    isHidden(name) || PACKAGE_EXT.has(path.extname(name).toLowerCase()) || (win && winCloud(name));
 
   const found: FoundItem[] = [];
   const walk = async (dir: string): Promise<void> => {
@@ -219,7 +242,7 @@ async function largeFiles(ctx: Ctx, alreadyListed: Set<string>): Promise<FoundIt
 
 async function appCaches(ctx: Ctx): Promise<FoundItem[]> {
   if (!ctx.win) {
-    return childrenAsItems(path.join(ctx.home, 'Library', 'Caches'), ctx, () => true, MB);
+    return childrenAsItems(path.join(ctx.home, 'Library', 'Caches'), ctx, { minBytes: MB });
   }
   const local = ctx.env.LOCALAPPDATA ?? path.join(ctx.home, 'AppData', 'Local');
   const browsers: Array<[string, string]> = [
@@ -242,15 +265,16 @@ async function appCaches(ctx: Ctx): Promise<FoundItem[]> {
   return found;
 }
 
+// macOS system areas in the temp folder (running-app translocation, Finder temp items).
+const SYSTEM_TEMP = /^(TemporaryItems|AppTranslocation|com\.apple\..*)$/;
+
 async function tempFiles(ctx: Ctx): Promise<FoundItem[]> {
   // Anything touched in the last day may belong to an app that is running right now.
-  const cutoff = ctx.now - DAY;
-  return childrenAsItems(
-    ctx.tmpdir,
-    ctx,
-    (_name, st) => (st.isFile() || st.isDirectory()) && st.mtimeMs < cutoff,
-    MB,
-  );
+  return childrenAsItems(ctx.tmpdir, ctx, {
+    keep: (name, st) => (st.isFile() || st.isDirectory()) && !SYSTEM_TEMP.test(name),
+    minBytes: MB,
+    untouchedBefore: ctx.now - DAY,
+  });
 }
 
 async function backupName(dir: string): Promise<string> {
@@ -273,7 +297,7 @@ async function deviceBackups(ctx: Ctx): Promise<FoundItem[]> {
     : [path.join(ctx.home, 'Library', 'Application Support', 'MobileSync', 'Backup')];
   const found: FoundItem[] = [];
   for (const root of roots) {
-    for (const backup of await childrenAsItems(root, ctx, (_n, st) => st.isDirectory())) {
+    for (const backup of await childrenAsItems(root, ctx, { keep: (_n, st) => st.isDirectory() })) {
       backup.name = await backupName(backup.path);
       found.push(backup);
     }
@@ -281,12 +305,12 @@ async function deviceBackups(ctx: Ctx): Promise<FoundItem[]> {
   return found;
 }
 
-function recycleBinBytes(): Promise<number | null> {
+function recycleBinBytes(signal?: AbortSignal): Promise<number | null> {
   const script =
     '$s=(New-Object -ComObject Shell.Application).NameSpace(10);' +
     "($s.Items() | ForEach-Object { $_.ExtendedProperty('Size') } | Measure-Object -Sum).Sum";
   return new Promise((resolve) => {
-    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { timeout: 20_000 }, (err, out) => {
+    execFile('powershell', ['-NoProfile', '-NonInteractive', '-Command', script], { timeout: 20_000, signal }, (err, out) => {
       const n = Number(out.trim() || 0);
       resolve(err || Number.isNaN(n) ? null : n);
     });
@@ -294,7 +318,7 @@ function recycleBinBytes(): Promise<number | null> {
 }
 
 async function trashBytes(ctx: Ctx, readable: boolean): Promise<number | null> {
-  if (ctx.win) return recycleBinBytes();
+  if (ctx.win) return recycleBinBytes(ctx.signal);
   return readable ? sizeOf(path.join(ctx.home, '.Trash'), ctx) : null;
 }
 
@@ -304,6 +328,7 @@ const byBytes = (a: FoundItem, b: FoundItem) => b.bytes - a.bytes;
 const total = (items: FoundItem[]) => items.reduce((sum, i) => sum + i.bytes, 0);
 
 export async function scan(options: ScanOptions = {}): Promise<FoundResult> {
+  const gen = ++generation;
   let counter = 0;
   const platform = options.platform ?? process.platform;
   const ctx: Ctx = {
@@ -314,10 +339,14 @@ export async function scan(options: ScanOptions = {}): Promise<FoundResult> {
     largeThreshold: options.largeThreshold ?? 500 * MB,
     signal: options.signal,
     win: platform === 'win32',
-    nextId: () => String(++counter),
+    // Unique across scans, so an ID from an earlier scan can never match a new item.
+    nextId: () => `${gen}-${++counter}`,
     limit: limiter(64),
   };
-  const progress = options.onProgress ?? (() => {});
+  const progress = (category: CategoryId) => {
+    ctx.signal?.throwIfAborted();
+    options.onProgress?.(category);
+  };
 
   // macOS gates these behind Full Disk Access / per-folder consent. Probing them
   // up front also makes macOS show its consent prompts before the long walk.
@@ -332,7 +361,7 @@ export async function scan(options: ScanOptions = {}): Promise<FoundResult> {
 
   const categories: FoundCategory[] = [];
   const add = (id: CategoryId, items: FoundItem[]) => {
-    categories.push({ id, bytes: total(items), items: items.sort(byBytes) });
+    categories.push({ id, bytes: total(items), preselect: PRESELECT.has(id), items: items.sort(byBytes) });
   };
 
   progress('downloads');
@@ -352,7 +381,8 @@ export async function scan(options: ScanOptions = {}): Promise<FoundResult> {
   add('backups', await deviceBackups(ctx));
 
   progress('trash');
-  categories.push({ id: 'trash', bytes: await trashBytes(ctx, !needsFullDiskAccess), items: [] });
+  categories.push({ id: 'trash', bytes: await trashBytes(ctx, !needsFullDiskAccess), preselect: false, items: [] });
+  ctx.signal?.throwIfAborted();
 
   return { categories, needsFullDiskAccess, deniedFolders };
 }

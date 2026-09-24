@@ -38,6 +38,11 @@ function createWindow(): void {
   win.loadFile(path.join(__dirname, 'renderer', 'index.html'));
 }
 
+/** Progress events are best-effort: the window may have been closed mid-scan. */
+function send(e: IpcMainInvokeEvent, channel: string, ...args: unknown[]): void {
+  if (!e.sender.isDestroyed()) e.sender.send(channel, ...args);
+}
+
 /** Registers an IPC handler that only answers our own bundled page. */
 function handle<A extends unknown[], R>(channel: string, fn: (e: IpcMainInvokeEvent, ...args: A) => R): void {
   ipcMain.handle(channel, (e, ...args) => {
@@ -58,9 +63,10 @@ handle('scan', async (e): Promise<ScanResult | null> => {
   try {
     const result = await scan({
       signal: controller.signal,
-      onProgress: (category) => e.sender.send('scan:progress', category),
+      onProgress: (category) => send(e, 'scan:progress', category),
     });
-    return list.load(result);
+    // Cancel may land after the last check inside the scan.
+    return controller.signal.aborted ? null : list.load(result);
   } catch (err) {
     if (controller.signal.aborted) return null;
     throw err;
@@ -74,7 +80,7 @@ handle('scan:cancel', () => scanning?.abort());
 handle('trash', (e, ids: unknown) => {
   if (!Array.isArray(ids) || !ids.every((id) => typeof id === 'string')) throw new Error('Invalid ids');
   return list.trash(ids, (p) => shell.trashItem(p), (done, total, name) =>
-    e.sender.send('trash:progress', done, total, name),
+    send(e, 'trash:progress', done, total, name),
   );
 });
 

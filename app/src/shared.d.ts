@@ -9,7 +9,7 @@ interface ScanItem {
   /** Friendly parent folder, e.g. "Movies › Trips". */
   location: string;
   bytes: number;
-  /** Last modified, ms since epoch. */
+  /** Last changed or arrived on this computer, ms since epoch. */
   modified: number;
 }
 
@@ -17,6 +17,8 @@ interface ScanCategory {
   id: CategoryId;
   /** null = could not be measured (e.g. missing permission). */
   bytes: number | null;
+  /** Items start ticked (only for things apps rebuild on their own). */
+  preselect: boolean;
   items: ScanItem[];
 }
 

@@ -240,6 +240,86 @@ test('a folder with thousands of files is sized completely', async () => {
   }
 });
 
+test('virtual machines and project bundles are not opened', async () => {
+  const f = fixture();
+  try {
+    file(path.join(f.home, 'Parallels', 'Windows 11.pvm', 'harddisk.hdd', 'data.hds'), 2 * MB);
+    file(path.join(f.home, 'Music', 'Song.logicx', 'Media', 'take1.wav'), 2 * MB);
+    const r = await run(f.home, f.tmp);
+    assert.deepEqual(names(r, 'large'), []);
+  } finally {
+    f.done();
+  }
+});
+
+test('a temp folder with anything changed in the last day is left alone', async () => {
+  const f = fixture();
+  try {
+    const busy = path.join(f.tmp, 'busy-app');
+    file(path.join(busy, 'old.dat'), 2 * MB, 5);
+    file(path.join(busy, 'live.sock.log'), KB); // written just now
+    age(busy, 5);
+    file(path.join(f.tmp, 'TemporaryItems', 'x'), 2 * MB, 5);
+    age(path.join(f.tmp, 'TemporaryItems'), 5);
+    const r = await run(f.home, f.tmp);
+    assert.deepEqual(names(r, 'temp'), []);
+  } finally {
+    f.done();
+  }
+});
+
+test('only caches and temp files start ticked', async () => {
+  const f = fixture();
+  try {
+    const r = await run(f.home, f.tmp);
+    const pre = Object.fromEntries(r.categories.map((c) => [c.id, c.preselect]));
+    assert.deepEqual(pre, { downloads: false, large: false, caches: true, temp: true, backups: false, trash: false });
+  } finally {
+    f.done();
+  }
+});
+
+test('item ids never repeat across scans', async () => {
+  const f = fixture();
+  try {
+    file(path.join(f.home, 'Movies', 'a.mov'), 2 * MB);
+    const first = category(await run(f.home, f.tmp), 'large').items[0].id;
+    const second = category(await run(f.home, f.tmp), 'large').items[0].id;
+    assert.notEqual(first, second);
+  } finally {
+    f.done();
+  }
+});
+
+test('windows: browser caches, backups and cloud folders', async () => {
+  const f = fixture();
+  try {
+    const local = path.join(f.home, 'AppData', 'Local');
+    const roaming = path.join(f.home, 'AppData', 'Roaming');
+    const chrome = path.join(local, 'Google', 'Chrome', 'User Data');
+    file(path.join(chrome, 'Default', 'Cache', 'Cache_Data', 'x'), 2 * MB);
+    file(path.join(chrome, 'Profile 2', 'GPUCache', 'y'), 2 * MB);
+    file(path.join(chrome, 'System Profile', 'Cache', 'z'), 2 * MB); // not a user profile
+    file(path.join(roaming, 'Apple Computer', 'MobileSync', 'Backup', 'abc', 'data'), 2 * MB);
+    file(path.join(f.home, 'OneDrive', 'video.mp4'), 2 * MB);
+    file(path.join(f.home, 'Videos', 'clip.mp4'), 2 * MB);
+    const r = await scan({
+      home: f.home,
+      tmpdir: f.tmp,
+      platform: 'win32',
+      env: { LOCALAPPDATA: local, APPDATA: roaming },
+      now: NOW,
+      largeThreshold: MB,
+    });
+    assert.deepEqual(names(r, 'caches').sort(), ['Chrome cache (Default)', 'Chrome gpucache (Profile 2)']);
+    assert.deepEqual(names(r, 'backups'), ['iPhone or iPad backup']);
+    assert.deepEqual(names(r, 'large'), ['clip.mp4']);
+    assert.equal(r.needsFullDiskAccess, false);
+  } finally {
+    f.done();
+  }
+});
+
 test('aborting stops the scan', async () => {
   const f = fixture();
   try {
