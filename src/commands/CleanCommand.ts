@@ -104,7 +104,6 @@ export class CleanCommand implements ICommand {
 
   private async removeBulk(): Promise<void> {
     const entries = await this.scanner.scan(true);
-    this.cache.save(entries);
 
     let safeEntries = entries.filter((e) => e.artifactType.safeToClean);
 
@@ -151,33 +150,19 @@ export class CleanCommand implements ICommand {
   // ─── Helpers ─────────────────────────────────────────────────────────────
 
   private async resolveEntry(): Promise<DiskEntry | null> {
-    // Try cache first
+    // IDs only mean something relative to the last `disky scan`, so never
+    // overwrite the cache here — the scanner's raw IDs differ from the sorted ones
     if (this.options.id !== undefined) {
       const cached = this.cache.findById(this.options.id);
-      if (cached) {
-        const entries = await this.scanner.scan(true);
-        this.cache.save(entries);
-        return entries.find((e) => e.absolutePath === cached.absolutePath) ?? null;
-      }
+      if (!cached) return null;
+      const entries = await this.scanner.scan(true);
+      const entry = entries.find((e) => e.absolutePath === cached.absolutePath);
+      if (entry) entry.id = cached.id;
+      return entry ?? null;
     }
 
-    if (this.options.targetPath) {
-      const absPath = this.expandPath(this.options.targetPath);
-      const cached = this.cache.findByPath(absPath);
-      if (cached) {
-        const entries = await this.scanner.scan(true);
-        this.cache.save(entries);
-        return entries.find((e) => e.absolutePath === absPath) ?? null;
-      }
-    }
-
-    // Live scan fallback
     const entries = await this.scanner.scan(true);
-    this.cache.save(entries);
 
-    if (this.options.id !== undefined) {
-      return entries.find((e) => e.id === this.options.id) ?? null;
-    }
     if (this.options.targetPath) {
       const absPath = this.expandPath(this.options.targetPath);
       return entries.find((e) => e.absolutePath === absPath) ?? null;
