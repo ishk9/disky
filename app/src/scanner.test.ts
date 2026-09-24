@@ -225,6 +225,21 @@ test('unreadable Downloads is reported as a denied folder', async () => {
   }
 });
 
+test('a folder with thousands of files is sized completely', async () => {
+  const f = fixture();
+  try {
+    const dir = path.join(f.home, 'Library/Caches/com.example.many');
+    mkdirSync(dir, { recursive: true });
+    for (let i = 0; i < 3000; i++) writeFileSync(path.join(dir, `f${i}`), Buffer.alloc(1024, 1));
+    const r = await run(f.home, f.tmp);
+    const cache = category(r, 'caches').items[0];
+    // 3000 files of 1 KB each occupy at least one 4 KB block apiece.
+    assert.ok(cache.bytes >= 3000 * 4 * KB, `got ${cache.bytes}`);
+  } finally {
+    f.done();
+  }
+});
+
 test('aborting stops the scan', async () => {
   const f = fixture();
   try {

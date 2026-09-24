@@ -35,7 +35,7 @@ export interface ScanOptions {
   onProgress?: (category: CategoryId) => void;
 }
 
-type Ctx = Required<Omit<ScanOptions, 'signal' | 'onProgress'>> & {
+type Ctx = Required<Omit<ScanOptions, 'signal' | 'onProgress' | 'platform'>> & {
   signal?: AbortSignal;
   win: boolean;
   nextId: () => string;
@@ -57,7 +57,8 @@ function onDisk(st: Stats, win: boolean): number {
 
 function limiter(max: number) {
   let active = 0;
-  const waiting: Array<() => void> = [];
+  let head = 0;
+  const waiting: Array<(() => void) | undefined> = [];
   return async <T>(fn: () => Promise<T>): Promise<T> => {
     while (active >= max) await new Promise<void>((r) => waiting.push(r));
     active++;
@@ -65,9 +66,25 @@ function limiter(max: number) {
       return await fn();
     } finally {
       active--;
-      waiting.shift()?.();
+      // Index-based dequeue: Array.shift() is O(n) and huge folders queue many waiters.
+      const next = waiting[head];
+      if (next) {
+        waiting[head++] = undefined;
+        if (head > 1024 && head * 2 > waiting.length) {
+          waiting.splice(0, head);
+          head = 0;
+        }
+        next();
+      }
     }
   };
+}
+
+/** Like Promise.all(items.map(fn)) but in batches, so a folder with 500k entries doesn't create 500k promises at once. */
+async function mapBatched<T, R>(items: T[], fn: (item: T) => Promise<R>, size = 256): Promise<R[]> {
+  const out: R[] = [];
+  for (let i = 0; i < items.length; i += size) out.push(...(await Promise.all(items.slice(i, i + size).map(fn))));
+  return out;
 }
 
 async function safeLstat(p: string, ctx: Ctx): Promise<Stats | null> {
@@ -93,7 +110,7 @@ async function sizeOf(p: string, ctx: Ctx, st?: Stats | null): Promise<number> {
   if (!st || st.isSymbolicLink()) return 0;
   if (!st.isDirectory()) return onDisk(st, ctx.win);
   const entries = await safeReaddir(p, ctx);
-  const sizes = await Promise.all(entries.map((e) => sizeOf(path.join(p, e.name), ctx)));
+  const sizes = await mapBatched(entries, (e) => sizeOf(path.join(p, e.name), ctx));
   return sizes.reduce((a, b) => a + b, onDisk(st, ctx.win));
 }
 
@@ -125,15 +142,13 @@ async function childrenAsItems(
   minBytes = 0,
 ): Promise<FoundItem[]> {
   const entries = await safeReaddir(dir, ctx);
-  const found = await Promise.all(
-    entries.map(async (e) => {
-      const p = path.join(dir, e.name);
-      const st = await safeLstat(p, ctx);
-      if (!st || st.isSymbolicLink() || !keep(e.name, st)) return null;
-      const bytes = await sizeOf(p, ctx, st);
-      return bytes >= minBytes ? item(p, st, bytes, ctx) : null;
-    }),
-  );
+  const found = await mapBatched(entries, async (e) => {
+    const p = path.join(dir, e.name);
+    const st = await safeLstat(p, ctx);
+    if (!st || st.isSymbolicLink() || !keep(e.name, st)) return null;
+    const bytes = await sizeOf(p, ctx, st);
+    return bytes >= minBytes ? item(p, st, bytes, ctx) : null;
+  });
   return found.filter((i): i is FoundItem => i !== null);
 }
 
@@ -187,18 +202,16 @@ async function largeFiles(ctx: Ctx, alreadyListed: Set<string>): Promise<FoundIt
   const walk = async (dir: string): Promise<void> => {
     ctx.signal?.throwIfAborted();
     const entries = await safeReaddir(dir, ctx);
-    await Promise.all(
-      entries.map(async (e) => {
-        const p = path.join(dir, e.name);
-        if (skipName(e.name) || skip.has(p) || e.isSymbolicLink()) return;
-        if (e.isDirectory()) return walk(p);
-        if (!e.isFile()) return;
-        const st = await safeLstat(p, ctx);
-        if (!st) return;
-        const bytes = onDisk(st, win);
-        if (bytes >= ctx.largeThreshold) found.push(item(p, st, bytes, ctx));
-      }),
-    );
+    await mapBatched(entries, async (e) => {
+      const p = path.join(dir, e.name);
+      if (skipName(e.name) || skip.has(p) || e.isSymbolicLink()) return;
+      if (e.isDirectory()) return walk(p);
+      if (!e.isFile()) return;
+      const st = await safeLstat(p, ctx);
+      if (!st) return;
+      const bytes = onDisk(st, win);
+      if (bytes >= ctx.largeThreshold) found.push(item(p, st, bytes, ctx));
+    });
   };
   await walk(home);
   return found;
@@ -280,11 +293,9 @@ function recycleBinBytes(): Promise<number | null> {
   });
 }
 
-async function trashBytes(ctx: Ctx): Promise<number | null> {
+async function trashBytes(ctx: Ctx, readable: boolean): Promise<number | null> {
   if (ctx.win) return recycleBinBytes();
-  const trash = path.join(ctx.home, '.Trash');
-  if (!(await canRead(trash))) return null;
-  return sizeOf(trash, ctx);
+  return readable ? sizeOf(path.join(ctx.home, '.Trash'), ctx) : null;
 }
 
 // ─── Entry point ────────────────────────────────────────────────────────────
@@ -297,7 +308,6 @@ export async function scan(options: ScanOptions = {}): Promise<FoundResult> {
   const platform = options.platform ?? process.platform;
   const ctx: Ctx = {
     home: options.home ?? os.homedir(),
-    platform,
     tmpdir: options.tmpdir ?? os.tmpdir(),
     env: options.env ?? process.env,
     now: options.now ?? Date.now(),
@@ -342,7 +352,7 @@ export async function scan(options: ScanOptions = {}): Promise<FoundResult> {
   add('backups', await deviceBackups(ctx));
 
   progress('trash');
-  categories.push({ id: 'trash', bytes: await trashBytes(ctx), items: [] });
+  categories.push({ id: 'trash', bytes: await trashBytes(ctx, !needsFullDiskAccess), items: [] });
 
   return { categories, needsFullDiskAccess, deniedFolders };
 }
